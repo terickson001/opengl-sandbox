@@ -1,0 +1,12 @@
+*
+!.gitignore
+
+!Makefile
+!include
+!include/**
+!src
+!src/**
+!res
+!res/**
+!shader
+!shader/**
