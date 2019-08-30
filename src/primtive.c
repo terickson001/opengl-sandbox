@@ -14,7 +14,7 @@ Vec3f cube_verts[24] = {
     {-1,  1,  1}, { 1,  1,  1}, {-1,  1, -1}, { 1,  1, -1}, // Top
     {-1, -1, -1}, { 1, -1, -1}, {-1, -1,  1}, { 1, -1,  1}, // Bottom
 };
-
+// ({2,0,0}*1/3 - {0,2,0}*0) * (1/(1/3*1/3 - 0*0))
 Vec2f cube_uvs[24] = {
     {1/3.0f, 1/3.0f}, {2/3.0f, 1/3.0f}, {1/3.0f, 2/3.0f}, {2/3.0f, 2/3.0f}, // Front
     {2/3.0f, 1/3.0f}, {3/3.0f, 1/3.0f}, {2/3.0f, 2/3.0f}, {3/3.0f, 2/3.0f}, // Right
@@ -31,6 +31,24 @@ Vec3f cube_normals[24] = {
     {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, // Left
     { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, // Top
     { 0, -1,  0}, { 0, -1,  0}, { 0, -1,  0}, { 0, -1,  0}, // Bottom
+};
+
+Vec3f cube_tangents[24] = {
+    { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0}, // Front
+    { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1}, // Right
+    {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, // Back
+    { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, // Left
+    { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0}, // Top
+    {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, // Bottom
+};
+
+Vec3f cube_bitangents[24] = {
+    { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, // Front
+    { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, // Right
+    { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, // Back
+    { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, { 0,  1,  0}, // Left
+    { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1}, // Top
+    { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, // Front
 };
 
 u16 cube_indices[36] = {
@@ -51,12 +69,18 @@ Model get_prim_cube()
         array_init(&prim_cube.uvs);
         array_init(&prim_cube.normals);
         array_init(&prim_cube.indices);
+        array_init(&prim_cube.tangents);
+        array_init(&prim_cube.bitangents);
 
-        array_appendv(&prim_cube.vertices, cube_verts,   24);
-        array_appendv(&prim_cube.uvs,      cube_uvs,     24);
-        array_appendv(&prim_cube.normals,  cube_normals, 24);
-        array_appendv(&prim_cube.indices,  cube_indices, 36);
+        array_appendv(&prim_cube.vertices,   cube_verts,      24);
+        array_appendv(&prim_cube.uvs,        cube_uvs,        24);
+        array_appendv(&prim_cube.normals,    cube_normals,    24);
+        array_appendv(&prim_cube.tangents,   cube_tangents,   24);
+        array_appendv(&prim_cube.bitangents, cube_bitangents, 24);
+        array_appendv(&prim_cube.indices,    cube_indices,    36);
 
+        // compute_tangent_basis(&prim_cube);
+        
         prim_cube.indexed = true;
         
         create_model_vbos(&prim_cube);
@@ -81,6 +105,22 @@ Vec3f pyramid_normals[16] = {
     {cos(A), -sin(A), 0},   {cos(A), -sin(A), 0},   {cos(A), -sin(A), 0},   // Right
     {0, sin(-A), -cos(-A)}, {0, sin(-A), -cos(-A)}, {0, sin(-A), -cos(-A)}, // Back
     {-cos(-A), sin(-A), 0}, {-cos(-A), sin(-A), 0}, {-cos(-A), sin(-A), 0}, // Left
+};
+
+Vec3f pyramid_tangents[16] = {
+    {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0}, // Base
+    { 1,  0,  0}, { 1,  0,  0}, { 1,  0,  0},               // Front
+    { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1},               // Right
+    {-1,  0,  0}, {-1,  0,  0}, {-1,  0,  0},               // Back
+    { 0,  0, -1}, { 0,  0, -1}, { 0,  0, -1},               // Left
+};
+
+Vec3f pyramid_bitangents[16] = {
+    { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1}, { 0,  0,  1},                     // Base
+    {0, cos(A), sin(A)},  {0, cos(A), sin(A)}, {0, cos(A), sin(A)},             // Front
+    {-sin(A), cos(A), 0},  {-sin(A), cos(A), 0}, {-sin(A), cos(A), 0},          // Right
+    {0, -cos(-A), -sin(-A)},  {0, -cos(-A), -sin(-A)}, {0, -cos(-A), -sin(-A)}, // Front
+    {-sin(A), cos(A), 0},  {-sin(A), cos(A), 0}, {-sin(A), cos(A), 0},          // Left
 };
 #undef A
 
@@ -109,11 +149,15 @@ Model get_prim_pyramid()
         array_init(&prim_pyramid.uvs);
         array_init(&prim_pyramid.normals);
         array_init(&prim_pyramid.indices);
+        array_init(&prim_pyramid.tangents);
+        array_init(&prim_pyramid.bitangents);
 
-        array_appendv(&prim_pyramid.vertices, pyramid_verts,   16);
-        array_appendv(&prim_pyramid.uvs,      pyramid_uvs,     16);
-        array_appendv(&prim_pyramid.normals,  pyramid_normals, 16);
-        array_appendv(&prim_pyramid.indices,  pyramid_indices, 18);
+        array_appendv(&prim_pyramid.vertices,    pyramid_verts,      16);
+        array_appendv(&prim_pyramid.uvs,         pyramid_uvs,        16);
+        array_appendv(&prim_pyramid.normals,     pyramid_normals,    16);
+        array_appendv(&prim_pyramid.tangents,    pyramid_tangents,   16);
+        array_appendv(&prim_pyramid.bitangents,  pyramid_bitangents, 16);
+        array_appendv(&prim_pyramid.indices,     pyramid_indices,    18);
 
         prim_pyramid.indexed = true;
         
@@ -189,6 +233,7 @@ Model get_prim_diamond()
         array_appendv(&prim_diamond.normals,  diamond_normals, 24);
         array_appendv(&prim_diamond.indices,  diamond_indices, 24);
 
+        compute_tangent_basis(&prim_diamond);
         prim_diamond.indexed = true;
         
         create_model_vbos(&prim_diamond);

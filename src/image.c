@@ -93,7 +93,7 @@ GLuint load_tga(const char *filepath)
 
     b32 RLE = image_type & 0b1000;
     
-    printf("======= Load TGA =======\n");
+    printf("======= Load TGA (%s) =======\n", filepath);
     printf("cmap_type: %hhu\n", cmap_type);
     printf("cmap_start: %hu\n", cmap_start);
     printf("cmap_len: %hu\n", cmap_len);
@@ -320,7 +320,6 @@ GLuint load_dds(const char *filepath)
     glBindTexture(GL_TEXTURE_2D, 0);
     
     return texture_id;
-
 }
 
 #define PNG_SIGNATURE  0x89504E470D0A1A0A
@@ -378,22 +377,22 @@ GLuint load_png(const char *filepath)
     u32 chunk_size;
     u32 chunk_type;
     u32 crc;
+    byte *chunk_dat;
+    
     fread(&chunk_size, 1, 4, file);
     fread(&chunk_type, 1, 4, file);
-    
-    byte header = malloc(chunk_size);
-    fread(header, 1, chunk_size, file);
-
+    chunk_dat = malloc(chunk_size);
+    fread(&chunk_dat, 1, chunk_size, file);
     fread(&crc, 1, 4, file);
     
-    u32 width           = *(u32 *)&(header[0x00]);
-    u32 height          = *(u32 *)&(header[0x04]);
-    u8 depth            = header[0x08];
-    u8 color_type       = header[0x09];
-    u8 compression_type = header[0x0A];
-    u8 filter_type      = header[0x0B];
-    u8 interlace_type   = header[0x0C];
-    free(header);
+    u32 width           = *(u32 *)&(chunk_dat[0x00]);
+    u32 height          = *(u32 *)&(chunk_dat[0x04]);
+    u8 depth            = chunk_dat[0x08];
+    u8 color_type       = chunk_dat[0x09];
+    u8 compression_type = chunk_dat[0x0A];
+    u8 filter_type      = chunk_dat[0x0B];
+    u8 interlace_type   = chunk_dat[0x0C];
+    free(chunk_dat);
     
     switch (color_type)
     {
@@ -437,5 +436,30 @@ GLuint load_png(const char *filepath)
 
     fread(&chunk_size, 1, 4, file);
     fread(&chunk_type, 1, 4, file);
-    
+    chunk_dat = malloc(chunk_size);
+    fread(&chunk_dat, 1, chunk_size, file);
+    fread(&crc, 1, 4, file);
+
+    switch (chunk_type)
+    {
+    case PNG_CHUNK_tIME:
+    case PNG_CHUNK_zTXt:
+    case PNG_CHUNK_tEXt:
+    case PNG_CHUNK_iTXt:
+    case PNG_CHUNK_pHYs:
+    case PNG_CHUNK_sPLT:
+    case PNG_CHUNK_iCCP:
+    case PNG_CHUNK_sRGB:
+    case PNG_CHUNK_sBIT:
+    case PNG_CHUNK_gAMA:
+    case PNG_CHUNK_cHRM:
+        
+    case PNG_CHUNK_PLTE:
+        
+    case PNG_CHUNK_tRNS:
+    case PNG_CHUNK_hIST:
+    case PNG_CHUNK_bKGD:
+        
+    case PNG_CHUNK_IDAT:
+    }
 }

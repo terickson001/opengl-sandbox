@@ -3,7 +3,6 @@
 layout(location = 0) in vec2 position;
 layout(location = 1) in vec2 vertex_uv;
 
-out vec4 gl_Position;
 out vec2 uv;
 
 void main()
