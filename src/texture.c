@@ -33,9 +33,9 @@ Texture load_texture(const char *diff_path, const char *norm_path, const char *s
     t.diffuse  = load_image(diff_path);
     
     if (norm_path) t.normal   = load_image(norm_path);
-    else           t.normal   = load_image("./res/normal_default.tga");
+    else           t.normal   = load_image("./res/normal_default.png");
     if (spec_path) t.specular = load_image(spec_path);
-    else           t.specular = load_image("./res/specular_default.tga");
+    else           t.specular = load_image("./res/specular_default.png");
     
     return t;
 }

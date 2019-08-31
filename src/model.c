@@ -247,7 +247,64 @@ void index_model(Model *m)
     m->indexed = true;
 }
 
-void compute_tangent_basis(Model *m)
+void _compute_tangent_basis_indexed(Model *m)
+{
+    make_array_reserve(&m->tangents,   array_size(m->vertices));
+    array_set_size(&m->tangents, array_capacity(m->tangents));
+    make_array_reserve(&m->bitangents, array_size(m->vertices));
+    array_set_size(&m->bitangents, array_capacity(m->bitangents));
+    
+    for (int i = 0; i < array_size(m->indices); i+=3)
+    {
+        u16 i1 = m->indices[i];
+        u16 i2 = m->indices[i+1];
+        u16 i3 = m->indices[i+2];
+        
+        Vec3f *v0 = &m->vertices[i1];
+        Vec3f *v1 = &m->vertices[i2];
+        Vec3f *v2 = &m->vertices[i3];
+
+        Vec2f *uv0 = &m->uvs[i1];
+        Vec2f *uv1 = &m->uvs[i2];
+        Vec2f *uv2 = &m->uvs[i3];
+
+        Vec3f delta_pos0 = vec3f_sub(*v1, *v0);
+        Vec3f delta_pos1 = vec3f_sub(*v2, *v0);
+
+        Vec2f delta_uv0 = vec2f_sub(*uv1, *uv0);
+        Vec2f delta_uv1 = vec2f_sub(*uv2, *uv0);
+
+        float r = 1.0f / (delta_uv0.u*delta_uv1.v - delta_uv0.v*delta_uv1.u);
+        
+        // tangent = (delta_pos0*delta_uv1.v - delta_pos1*delta_uv0.v)*r
+        Vec3f tangent = vec3f_scale(
+            vec3f_sub(
+                vec3f_scale(delta_pos0, delta_uv1.v),
+                vec3f_scale(delta_pos1, delta_uv0.v)
+            ),
+            r
+        );
+        
+        // bitangent = (delta_pos1*delta_uv0.u - delta_pos0*delta_uv1.u)*r
+        Vec3f bitangent = vec3f_scale(
+            vec3f_sub(
+                vec3f_scale(delta_pos1, delta_uv0.u),
+                vec3f_scale(delta_pos0, delta_uv1.u)
+            ),
+            r
+        );
+
+        m->tangents[i1] = tangent;
+        m->tangents[i2] = tangent;
+        m->tangents[i3] = tangent;
+
+        m->bitangents[i1] = bitangent;
+        m->bitangents[i2] = bitangent;
+        m->bitangents[i3] = bitangent;
+    }
+}
+
+void _compute_tangent_basis_unindexed(Model *m)
 {
     array_init(&m->tangents);
     array_init(&m->bitangents);
@@ -296,6 +353,14 @@ void compute_tangent_basis(Model *m)
         array_append(&m->bitangents, bitangent);
         array_append(&m->bitangents, bitangent);
     }
+}
+
+void compute_tangent_basis(Model *m)
+{
+    if (m->indexed)
+        _compute_tangent_basis_indexed(m);
+    else
+        _compute_tangent_basis_unindexed(m);
 
     for (int i = 0; i < array_size(m->vertices); i++)
     {
@@ -310,8 +375,8 @@ void compute_tangent_basis(Model *m)
             *t = vec3f_scale(*t, -1);
     }
     
-    array_shrink(&m->tangents);
-    array_shrink(&m->bitangents);
+    //array_shrink(&m->tangents);
+    //array_shrink(&m->bitangents);
 }
 
 void create_model_vbos(Model *m)
@@ -370,25 +435,6 @@ Model make_model(char const *filepath, bool normals, bool invert_uv)
     if (invert_uv) invert_uvs(&model);
 
     return model;
-}
-void draw_model_normals(Model m, Mat4f mvp)
-{
-    for (int i = 0; i < array_size(m.normals); i+=3)
-    {
-        Vec4f start = {
-            .x = (m.vertices[i].x + m.vertices[i+1].x + m.vertices[i+2].x)/3,
-            .y = (m.vertices[i].y + m.vertices[i+1].y + m.vertices[i+2].y)/3,
-            .z = (m.vertices[i].z + m.vertices[i+1].z + m.vertices[i+2].z)/3,
-            .w = 1,
-        };
-        Vec4f avg_norm = {
-            .x = (m.normals[i].x + m.normals[i+1].x + m.normals[i+2].x)/3,
-            .y = (m.normals[i].y + m.normals[i+1].y + m.normals[i+2].y)/3,
-            .z = (m.normals[i].z + m.normals[i+1].z + m.normals[i+2].z)/3,
-            .w = 0,
-        };
-        Vec4f end = vec4f_add(start, avg_norm);
-    }
 }
 
 void draw_model(Shader s, Model m)

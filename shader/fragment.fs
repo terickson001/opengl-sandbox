@@ -21,7 +21,7 @@ uniform vec3 light_color;
 uniform float light_power;
 uniform vec3 light_position_m;
 
-const float specularity = 1;
+const float specularity = 0.3;
 void main()
 {
     vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;

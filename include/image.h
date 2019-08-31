@@ -7,5 +7,6 @@
 GLuint load_bmp(const char *filepath);
 GLuint load_tga(const char *filepath);
 GLuint load_dds(const char *filepath);
+GLuint load_png(const char *filepath);
 
 #endif // _IMAGE_H

@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "lib.h"
+#include "lodepng.h"
 
 GLuint load_bmp(const char *filepath)
 {
@@ -39,7 +40,6 @@ GLuint load_bmp(const char *filepath)
 
     GLuint texture_id;
     glGenTextures(1, &texture_id);
-
     glBindTexture(GL_TEXTURE_2D, texture_id);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
@@ -47,8 +47,8 @@ GLuint load_bmp(const char *filepath)
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     return texture_id;
@@ -314,13 +314,63 @@ GLuint load_dds(const char *filepath)
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 
     glBindTexture(GL_TEXTURE_2D, 0);
     
     return texture_id;
 }
+
+GLuint load_png(const char *filepath)
+{
+    uint error;
+    u8 *image = 0;
+    uint width, height;
+    u8 *png = 0;
+    size_t pngsize;
+    LodePNGState state;
+
+    lodepng_state_init(&state);
+
+    
+    error = lodepng_load_file(&png, &pngsize, filepath);
+    if (!error)
+        error = lodepng_decode(&image, &width, &height, &state, png, pngsize);
+    if (error)
+    {
+        fprintf(stderr, "load_png: ERROR %u: %s\n", error, lodepng_error_text(error));
+        exit(1);
+    }
+
+    printf("PNG LOADED: %s\n  width: %hd\n  height: %hd\n", filepath, width, height);
+
+    uint pixel_depth = 4;
+    // Flip image
+    u8 *flipped = malloc(width*height*pixel_depth);
+    for (uint i = 0; i < height; i++)
+        memcpy(flipped+(width*pixel_depth*(height-1-i)), image+(width*pixel_depth*i), width*pixel_depth);
+    lodepng_state_cleanup(&state);
+    free(image);
+
+    GLuint texture_id;
+    glGenTextures(1, &texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, flipped);
+    free(flipped);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    return texture_id;
+}
+
+#if 0
+// THIS IS A WIP
 
 #define PNG_SIGNATURE  0x89504E470D0A1A0A
 
@@ -463,3 +513,4 @@ GLuint load_png(const char *filepath)
     case PNG_CHUNK_IDAT:
     }
 }
+#endif

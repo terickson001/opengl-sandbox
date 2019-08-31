@@ -95,13 +95,13 @@ int main(void)
     // Load texture
     Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
-    Texture grass     = load_texture("./res/grass.tga", 0, 0);
+    Texture grass     = load_texture("./res/grass.png", 0, 0);
     
     Entity column        = make_entity(&model,     &brick,     init_vec3f(0, 1, 0), init_vec3f(0, 0, -1));
     Entity suzanne       = make_entity(&suzanne_m, &suzanne_t, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
     // Entity suzanne_2   = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
     Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f(-1, 0, -1));
+    Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0));
     Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
     
     // Create transformation matrices
