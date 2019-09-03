@@ -92,9 +92,9 @@ void update_camera_position(Window win, Camera *cam, float dt)
         cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->right, dt*cam->move_speed));
 
     if (key_down(GLFW_KEY_SPACE))
-        cam->pos = vec3f_add(cam->pos, vec3f_scale(cam->up, dt*cam->move_speed));
+        cam->pos = vec3f_add(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
     if (key_down(GLFW_KEY_LEFT_SHIFT))
-        cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->up, dt*cam->move_speed));
+        cam->pos = vec3f_sub(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
 }
 
 void update_camera(Window win, Camera *cam, float dt)

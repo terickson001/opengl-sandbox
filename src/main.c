@@ -79,7 +79,7 @@ int main(void)
 
     // Load OBJs
     Model model = make_model("./res/cylinder.obj", true, true);
-    Model suzanne_m = make_model("./res/suzanne.obj", false, true);
+    Model suzanne_m = make_model("./res/suzanne.obj", true, true);
     Model cube = get_prim_cube();
     Model pyramid = get_prim_pyramid();
     Model diamond = get_prim_diamond();
@@ -95,14 +95,15 @@ int main(void)
     // Load texture
     Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
-    Texture grass     = load_texture("./res/grass.png", 0, 0);
+    // Texture suzanne_t = load_texture("./res/normal_default.png", 0, 0);
+    // Texture grass     = load_texture("./res/grass64.png", 0, 0);
     
     Entity column        = make_entity(&model,     &brick,     init_vec3f(0, 1, 0), init_vec3f(0, 0, -1));
     Entity suzanne       = make_entity(&suzanne_m, &suzanne_t, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
-    // Entity suzanne_2   = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0));
-    Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
+    Entity suzanne_2     = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
+    /* Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
+    /* Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0)); */
+    /* Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -125,12 +126,9 @@ int main(void)
     float light_pow = 50.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
-
+    Font font = init_font("./res/font_holstein.DDS");
     int nb_frames = 0;
     float accum_time = 0.0;
-
-    Font font = init_font("./res/font_holstein.DDS");
-    
     char fps_str[256] = "0";
     do
     {
@@ -150,17 +148,13 @@ int main(void)
         glUniform3f(shader.uniforms.light_col, light_col.data[0], light_col.data[1], light_col.data[2]);
         glUniform1f(shader.uniforms.light_pow, light_pow);
 
-        // draw_entity(shader, column);
-        // draw_entity(shader, suzanne);
-        // draw_entity(shader, suzanne_2);
-        Mat4f block_transform = entity_transform(grass_block);
-        draw_entity(shader, grass_block);
-        draw_entity(shader, grass_pyramid);
+        draw_entity(shader, column);
+        draw_entity(shader, suzanne);
+        draw_entity(shader, suzanne_2);
+        // draw_entity(shader, grass_block);
+        // draw_entity(shader, grass_pyramid);
         // draw_entity(shader, grass_diamond);
 
-        /* char text[256]; */
-		/* sprintf(text,"% .2f sec", glfwGetTime()); */
-		/* print_text(font, text, 0, height-185, 15); */
         print_text(font, fps_str, width-270, height-185, 15);
         
         glfwSwapBuffers(window.handle);

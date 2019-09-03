@@ -21,11 +21,11 @@ uniform vec3 light_color;
 uniform float light_power;
 uniform vec3 light_position_m;
 
-const float specularity = 0.3;
+const float specularity = 1;
 void main()
 {
     vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
-    vec3 material_ambient_color = vec3(0.1, 0.1, 0.1) * material_diffuse_color;
+    vec3 material_ambient_color = 0.3f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 
     float dist = length(light_position_m - frag.position_m);
