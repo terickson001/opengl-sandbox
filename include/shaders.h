@@ -19,18 +19,10 @@ typedef struct Shader
     {
         struct
         {
-            GLint model_matrix;
+            GLint camera_position;
+            
             GLint view_matrix;
             GLint projection_matrix;
-            GLint mvp_matrix;
-            GLint vp_matrix;
-              
-            GLint diffuse_tex;
-            GLint normal_tex;
-            GLint specular_tex;
-              
-            GLint use_normal;
-            GLint use_specular;
               
             GLint light_pos;
             GLint light_col;

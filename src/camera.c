@@ -64,6 +64,14 @@ void update_camera_angle(Window win, Camera *cam, float dt)
     );
 
     cam->up = vec3f_cross(cam->right, cam->dir);
+
+    printf("CAMERA:\n");
+    printf("  dir: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n",
+           cam->dir.x, cam->dir.y, cam->dir.z,
+           DEG(cam->h_angle), DEG(cam->v_angle));
+    printf("  right: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n",
+           cam->right.x, cam->right.y, cam->right.z,
+           DEG(cam->h_angle-M_PI/2), 0.0f);
 }
 
 void update_camera_position(Window win, Camera *cam, float dt)

@@ -147,20 +147,11 @@ Shader init_shaders(const char *vs_filepath, const char *gs_filepath, const char
     s.fs_filepath = malloc(fs_len+1);
     memcpy(s.fs_filepath, fs_filepath, fs_len+1);
 
-    s.uniforms.model_matrix      = glGetUniformLocation(s.id, "M");
+    s.uniforms.camera_position   = glGetUniformLocation(s.id, "cam_pos");
     s.uniforms.view_matrix       = glGetUniformLocation(s.id, "V");
     s.uniforms.projection_matrix = glGetUniformLocation(s.id, "P");
-    s.uniforms.mvp_matrix        = glGetUniformLocation(s.id, "MVP");
-    s.uniforms.vp_matrix         = glGetUniformLocation(s.id, "VP");
     
-    s.uniforms.diffuse_tex  = glGetUniformLocation(s.id, "diffuse_sampler");
-    s.uniforms.normal_tex   = glGetUniformLocation(s.id, "normal_sampler");
-    s.uniforms.specular_tex = glGetUniformLocation(s.id, "specular_sampler");
-
-    s.uniforms.use_normal   = glGetUniformLocation(s.id, "use_normal");
-    s.uniforms.use_specular = glGetUniformLocation(s.id, "use_specular");
-
-    s.uniforms.light_pos = glGetUniformLocation(s.id, "light_position_m");
+    s.uniforms.light_pos = glGetUniformLocation(s.id, "light_position");
     s.uniforms.light_col = glGetUniformLocation(s.id, "light_color");
     s.uniforms.light_pow = glGetUniformLocation(s.id, "light_power");
 

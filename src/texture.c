@@ -44,15 +44,15 @@ void activate_texture(Shader s, Texture t)
 {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, t.diffuse);
-        glUniform1i(s.uniforms.diffuse_tex, 0);
+        // glUniform1i(s.uniforms.diffuse_tex, 0);
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, t.normal);
-        glUniform1i(s.uniforms.normal_tex, 1);
+        // glUniform1i(s.uniforms.normal_tex, 1);
 
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, t.specular);
-        glUniform1i(s.uniforms.specular_tex, 2);
+        // glUniform1i(s.uniforms.specular_tex, 2);
 }
 
 void disable_texture(Shader s, Texture t)

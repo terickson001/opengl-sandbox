@@ -30,7 +30,7 @@ Window init_gl(int w, int h, char *title)
     }
 
     glfwWindowHint(GLFW_SAMPLES, 16); // 16x antialiasing
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // OpenGL v.3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL v.4.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -56,10 +56,13 @@ Window init_gl(int w, int h, char *title)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glEnable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
 
     glEnable(GL_MULTISAMPLE);
-
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     glfwSetKeyCallback(window.handle, update_keystate);
     glfwSetInputMode(window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     
@@ -78,13 +81,13 @@ int main(void)
     glBindVertexArray(vao);
 
     GLfloat vertices[] = {
-        -1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f,  0.0f,
+         1.0f, -1.0f,  0.0f,
+        -1.0f,  1.0f,  0.0f,
 
-         1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f,  0.0f,
+        -1.0f,  1.0f,  0.0f,
+         1.0f, -1.0f,  0.0f,
     };
 
     GLuint vbuff;
@@ -95,43 +98,55 @@ int main(void)
     // Load shaders
     Shader shader = init_shaders("./shader/vertex.vs", 0, "./shader/fragment.fs");
 
-    // Create transformation matrices
-    Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
-    // Mat4f projection_mat = mat4f_ortho(-10, 10, -10, 10, 0, 100);
-    Mat4f view_mat;
-
     // Initialize delta time
     double last_time = glfwGetTime();
     double current_time;
     float dt = 0;
 
+    Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
+
     // Initialize camera
-    Vec3f cam_pos = init_vec3f(4, 4, 4);
+    Vec3f cam_pos = init_vec3f(0, 0, 5);
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
-    
+    Mat4f view_mat;
+
     // Light settings
     Vec3f light_pos = init_vec3f(4, 4, 4);
     Vec3f light_col = init_vec3f(1, 1, 1);
-    float light_pow = 50.0f;
+    float light_pow = 10.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
+
     Font font = init_font("./res/font_holstein.DDS");
     int nb_frames = 0;
-    float accum_time = 0.0;
+    float accum_time = 0.0f;
     char fps_str[256] = "0";
+    
     do
     {
+        update_camera(window, &camera, dt);
+        view_mat = get_camera_view(camera);
+        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader.id);
+        
+        glUniform3f(shader.uniforms.camera_position, camera.pos.x, camera.pos.y, camera.pos.z);
 
+        glUniformMatrix4fv(shader.uniforms.view_matrix, 1, GL_FALSE, view_mat.data);
+        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_FALSE, projection_mat.data);
+
+        glUniform3f(shader.uniforms.light_pos, light_pos.x, light_pos.y, light_pos.z);
+        glUniform3f(shader.uniforms.light_col, light_col.r, light_col.g, light_col.b);
+        glUniform1f(shader.uniforms.light_pow, light_pow);
+    
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, vbuff);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         glDisableVertexAttribArray(0);
         
-        print_text(font, fps_str, width-270, height-185, 15);
+        // print_text(font, fps_str, width-270, height-185, 15);
 
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
@@ -139,7 +154,7 @@ int main(void)
         current_time = glfwGetTime();
         dt = (float)(current_time - last_time);
         last_time = current_time;
-
+        
         nb_frames++;
         accum_time += dt;
         if (accum_time >= 1.0f)
@@ -156,8 +171,6 @@ int main(void)
            glfwWindowShouldClose(window.handle) == 0);
 
     // Cleanup
-    destroy_font(font);
-
     glDeleteProgram(shader.id);
 
 	// Close OpenGL window and terminate GLFW

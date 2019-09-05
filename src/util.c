@@ -27,36 +27,34 @@ void get_direction_angles(const Vec3f dir, float *h_angle, float *v_angle)
 {
     Vec3f right = init_vec3f(1, 0, 0);
     
-    Vec3f backward = init_vec3f(0, 0, 1);
-    Vec3f forward = init_vec3f(0, 0, -1);
+    Vec3f backward = init_vec3f(0, 0, 0);
+    Vec3f forward = init_vec3f(0, 0, 1);
         
     Vec3f up = init_vec3f(0, 1, 0);
 
     Vec3f dir_hor = vec3f_normalize(
         init_vec3f(
-            vec3f_get(dir, 0),
+            dir.x,
             0,
-            vec3f_get(dir, 2)
+            dir.z
         ));
     if (vec3f_mag(dir_hor) == 0)
         *h_angle = 0;
     else
-        *h_angle = atan2(vec3f_dot(up, vec3f_cross(backward, dir_hor)), vec3f_dot(backward, dir_hor));
+        *h_angle = atan2(vec3f_dot(up, vec3f_cross(forward, dir_hor)), vec3f_dot(forward, dir_hor));
     if (*h_angle < 0) *h_angle += 2*M_PI;
 
 
-    float dir_x = vec3f_get(dir, 0);
-    float dir_z = vec3f_get(dir, 2);
-    float vert_z = -sqrt(dir_x*dir_x + dir_z*dir_z);
+    float vert_z = -sqrt(dir.x*dir.x + dir.z*dir.z);
     Vec3f dir_vert = vec3f_normalize(
         init_vec3f(
             0,
-            vec3f_get(dir, 1),
+            dir.y,
             vert_z
         ));
 
     if (vec3f_mag(dir_vert) == 0)
         *v_angle = 0;
     else
-        *v_angle = atan2(vec3f_dot(right, vec3f_cross(forward, dir_vert)), vec3f_dot(forward, dir_vert));
+        *v_angle = atan2(vec3f_dot(right, vec3f_cross(backward, dir_vert)), vec3f_dot(backward, dir_vert));
 }
