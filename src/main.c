@@ -77,38 +77,27 @@ int main(void)
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Load OBJs
-    Model model = make_model("./res/cylinder.obj", true, true);
-    Model suzanne_m = make_model("./res/suzanne.obj", true, true);
-    Model cube = get_prim_cube();
-    Model pyramid = get_prim_pyramid();
-    Model diamond = get_prim_diamond();
-    //invert_uvs(&cube);
-    
-    create_model_vbos(&model);
-    create_model_vbos(&suzanne_m);
+    GLfloat vertices[] = {
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+    };
+
+    GLuint vbuff;
+    glGenBuffers(1, &vbuff);
+    glBindBuffer(GL_ARRAY_BUFFER, vbuff);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
     // Load shaders
-    // Shader shader = init_shaders("./shader/vertex.vs", "./shader/geometry.gs", "./shader/fragment.fs");
     Shader shader = init_shaders("./shader/vertex.vs", 0, "./shader/fragment.fs");
 
-    // Load texture
-    Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
-    Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
-    // Texture suzanne_t = load_texture("./res/normal_default.png", 0, 0);
-    // Texture grass     = load_texture("./res/grass64.png", 0, 0);
-    
-    Entity column        = make_entity(&model,     &brick,     init_vec3f(0, 1, 0), init_vec3f(0, 0, -1));
-    Entity suzanne       = make_entity(&suzanne_m, &suzanne_t, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
-    Entity suzanne_2     = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    /* Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
-    /* Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0)); */
-    /* Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
-    
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
     // Mat4f projection_mat = mat4f_ortho(-10, 10, -10, 10, 0, 100);
-
     Mat4f view_mat;
 
     // Initialize delta time
@@ -132,31 +121,18 @@ int main(void)
     char fps_str[256] = "0";
     do
     {
-        update_camera(window, &camera, dt);
-        view_mat = get_camera_view(camera);
-        Mat4f vp = mat4f_mul(projection_mat, view_mat);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader.id);
 
-        glUniformMatrix4fv(shader.uniforms.view_matrix, 1, GL_FALSE, view_mat.data);
-        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_FALSE, projection_mat.data);
-        glUniformMatrix3fv(shader.uniforms.vp_matrix, 1, GL_FALSE, vp.data);
-
-        glUniform3f(shader.uniforms.light_pos, light_pos.data[0], light_pos.data[1], light_pos.data[2]);
-        glUniform3f(shader.uniforms.light_col, light_col.data[0], light_col.data[1], light_col.data[2]);
-        glUniform1f(shader.uniforms.light_pow, light_pow);
-
-        draw_entity(shader, column);
-        draw_entity(shader, suzanne);
-        draw_entity(shader, suzanne_2);
-        // draw_entity(shader, grass_block);
-        // draw_entity(shader, grass_pyramid);
-        // draw_entity(shader, grass_diamond);
-
-        print_text(font, fps_str, width-270, height-185, 15);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbuff);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDisableVertexAttribArray(0);
         
+        print_text(font, fps_str, width-270, height-185, 15);
+
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
 
@@ -164,7 +140,6 @@ int main(void)
         dt = (float)(current_time - last_time);
         last_time = current_time;
 
-        
         nb_frames++;
         accum_time += dt;
         if (accum_time >= 1.0f)
@@ -181,8 +156,6 @@ int main(void)
            glfwWindowShouldClose(window.handle) == 0);
 
     // Cleanup
-    destroy_model(&model);
-    destroy_texture(brick);
     destroy_font(font);
 
     glDeleteProgram(shader.id);

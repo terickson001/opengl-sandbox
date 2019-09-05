@@ -22,27 +22,52 @@ uniform float light_power;
 uniform vec3 light_position_m;
 
 const float specularity = 1;
+
+float scene_dist(vec3 p)
+{
+    return length(p)-1.0;
+}
+
+float march(vec3 eye, vec3 ray, float max_distance)
+{
+    float depth = 0;
+    for (int i = 0; i < 1024; i++)
+    {
+        float dist = scene_dist(eye + ray*depth);
+        if (dist < 0.0001f)
+            return depth;
+
+        depth = depth + dist;
+
+        if (depth >= max_distance)
+            return max_distance;
+    }
+    return max_distance;
+}
+
+vec3 ray_direction(float fov, vec2 size, vec2 fragCoord)
+{
+    vec2 xy = fragCoord - size / 2.0;
+    float z = size.y / tan(radians(fov))/2.0;
+    return normalize(vec3(xy, -z));
+}
+
 void main()
 {
-    vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
-    vec3 material_ambient_color = 0.3f * material_diffuse_color;
-    vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
+    color = vec3(1, 0, 0);
+    return;
 
-    float dist = length(light_position_m - frag.position_m);
+    vec3 ray = ray_direction(45, vec2(1024, 768), gl_FragCoord.xy);
+    vec3 eye = vec3(0, 0, 5);
 
-    vec3 n = normalize(texture(normal_sampler, vec2(frag.uv.x, frag.uv.y)).rgb*2.0 - 1.0);
-    vec3 l = normalize(frag.light_direction_tbn);
-    vec3 E = normalize(frag.eye_direction_tbn);
+    float max_dist = 100.0;
+    float dist = march(eye, ray, max_dist);
+
+    if (dist > max_dist - 0.0001)
+    {
+        color = vec3(1,0, 0);
+        return;
+    }
     
-    vec3 R = reflect(-l, n);
-    float cos_theta = clamp(dot(n, l), 0, 1);
-    float cos_alpha = clamp(dot(E, R), 0, 1);
-
-    color = 
-        // Ambient : simulates indirect lighting
-        material_ambient_color +
-        // Diffuse : "color" of the object
-        material_diffuse_color * light_color * light_power * cos_theta / (dist*dist) +
-        // Specular : reflective highlight, like a mirror
-        material_specular_color * light_color * light_power * pow(cos_alpha, 5) / (dist*dist);
+    color = vec3(1, 0, 0);
 }
