@@ -52,22 +52,25 @@ void update_camera_angle(Window win, Camera *cam, float dt)
     cam->v_angle = MIN(MAX(cam->v_angle, -(M_PI/2)), M_PI/2);
     
     cam->dir = init_vec3f(
-        cos(cam->v_angle) * sin(cam->h_angle),
+        cos(cam->v_angle) * -sin(cam->h_angle),
         sin(cam->v_angle),
         cos(cam->v_angle) * cos(cam->h_angle)
     );
 
     cam->right = init_vec3f(
-        sin(cam->h_angle - M_PI/2),
+        -sin(cam->h_angle - M_PI/2),
         0,
         cos(cam->h_angle - M_PI/2)
     );
 
-    cam->up = vec3f_cross(cam->right, cam->dir);
+    cam->up = vec3f_cross(cam->dir, cam->right);
 
     printf("CAMERA:\n");
     printf("  dir: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n",
            cam->dir.x, cam->dir.y, cam->dir.z,
+           DEG(cam->h_angle), DEG(cam->v_angle));
+    printf("  up: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n",
+           cam->up.x, cam->up.y, cam->up.z,
            DEG(cam->h_angle), DEG(cam->v_angle));
     printf("  right: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n",
            cam->right.x, cam->right.y, cam->right.z,
@@ -103,6 +106,9 @@ void update_camera_position(Window win, Camera *cam, float dt)
         cam->pos = vec3f_add(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
     if (key_down(GLFW_KEY_LEFT_SHIFT))
         cam->pos = vec3f_sub(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
+
+    printf("  pos: [%.2f, %.2f, %.2f]\n",
+           cam->pos.x, cam->pos.y, cam->pos.z);
 }
 
 void update_camera(Window win, Camera *cam, float dt)
