@@ -647,10 +647,22 @@
     Mat4##T mat4##T##_look_at(Vec3##T eye, Vec3##T focus, Vec3##T up)   \
     {                                                                   \
         Vec3##T f = vec3##T##_normalize(vec3##T##_sub(focus, eye));     \
-        Vec3##T s = vec3##T##_cross(f, vec3##T##_normalize(up));         \
+        Vec3##T s = vec3##T##_cross(f, vec3##T##_normalize(up));        \
         Vec3##T u = vec3##T##_cross(vec3##T##_normalize(s), f);         \
                                                                         \
-        Mat4##T res = mat4##T##_rotate_to(eye, focus, up);              \
+        Mat4##T res = init_mat4##T(1);                                  \
+                                                                        \
+        mat4##T##_set(&res, 0, 0, s.x);                                 \
+        mat4##T##_set(&res, 0, 1, s.y);                                 \
+        mat4##T##_set(&res, 0, 2, s.z);                                 \
+                                                                        \
+        mat4##T##_set(&res, 1, 0, u.x);                                 \
+        mat4##T##_set(&res, 1, 1, u.y);                                 \
+        mat4##T##_set(&res, 1, 2, u.z);                                 \
+                                                                        \
+        mat4##T##_set(&res, 2, 0, -f.x);                                \
+        mat4##T##_set(&res, 2, 1, -f.y);                                \
+        mat4##T##_set(&res, 2, 2, -f.z);                                \
                                                                         \
         mat4##T##_set(&res, 0, 3, -vec3##T##_dot(s, eye));              \
         mat4##T##_set(&res, 1, 3, -vec3##T##_dot(u, eye));              \

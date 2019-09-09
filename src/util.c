@@ -27,8 +27,8 @@ void get_direction_angles(const Vec3f dir, float *h_angle, float *v_angle)
 {
     Vec3f right = init_vec3f(1, 0, 0);
     
-    Vec3f backward = init_vec3f(0, 0, 0);
-    Vec3f forward = init_vec3f(0, 0, 1);
+    Vec3f backward = init_vec3f(0, 0, 1);
+    Vec3f forward = init_vec3f(0, 0, -1);
         
     Vec3f up = init_vec3f(0, 1, 0);
 

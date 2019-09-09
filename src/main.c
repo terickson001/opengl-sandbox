@@ -106,7 +106,7 @@ int main(void)
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
 
     // Initialize camera
-    Vec3f cam_pos = init_vec3f(0, 0, -5);
+    Vec3f cam_pos = init_vec3f(0, 0, 5);
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
     Mat4f view_mat;
 

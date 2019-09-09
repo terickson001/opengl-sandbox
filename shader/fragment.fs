@@ -31,21 +31,6 @@ float scene_dist(in vec3 p)
 
 float scene_dist(in vec3 p, out vec3 color)
 {
-    // vec3 colors[2] = {vec3(1, 0, 0), vec3(0, 0, 1)};
-    
-    // float box = box_dist(p, 0.6);
-    // float sphere = sphere_dist(p, 0.65);
-    
-    // if (box > sphere)
-    // {
-    //     color = colors[0];
-    //     return box;
-    // }
-    // else
-    // {
-    //     color = colors[1];
-    //     return sphere;
-    // }
     color = vec3(1, 0, 0);
     return max(box_dist(p, 0.8), -sphere_dist(p, 0.95));
 }
