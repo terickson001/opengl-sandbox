@@ -75,12 +75,13 @@ void main()
     vec3 light_color = vec3(1, 1, 1);
     float light_power = 20;
     
-    vec3 ray = (V * vec4(ray_direction(45, vec2(1024, 768), gl_FragCoord.xy), 0)).xyz;
+    vec3 view_ray = ray_direction(45, vec2(1024, 768), gl_FragCoord.xy);
+    vec3 world_ray = (V * vec4(view_ray, 0)).xyz;
     // vec3 eye = vec3(0, 0, 5);
     
     float max_dist = 100.0;
     vec3 base_color;
-    float dist = march(cam_pos, ray, max_dist, base_color);
+    float dist = march(cam_pos, world_ray, max_dist, base_color);
 
     if (dist > max_dist - 0.0001)
     {
@@ -89,7 +90,7 @@ void main()
         return;
     }
 
-    vec3 p = cam_pos + dist*ray;
+    vec3 p = cam_pos + dist*world_ray;
     vec3 n = estimate_normal(p);
     float l_dist = length(light_position - p);
     

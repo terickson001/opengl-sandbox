@@ -34,6 +34,7 @@ Mat4f get_camera_view(Camera cam)
         vec3f_add(cam.pos, cam.dir),
         cam.up
     );
+    
 }
 
 void update_camera_angle(Window win, Camera *cam, float dt)

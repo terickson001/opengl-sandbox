@@ -379,12 +379,12 @@
                                                                         \
     force_inline type mat##S##T##_get(const Mat##S##T mat, int i, int j) \
     {                                                                   \
-        return mat.data[j*S+i];                                         \
+        return mat.data[i*S+j];                                         \
     }                                                                   \
                                                                         \
     force_inline void mat##S##T##_set(Mat##S##T *mat, int i, int j, type x) \
     {                                                                   \
-        mat->data[j*S+i] = x;                                           \
+        mat->data[i*S+j] = x;                                           \
     }                                                                   \
                                                                         \
     force_inline void mat##S##T##_set_row(Mat##S##T *mat, int i, Vec##S##T vec) \
@@ -647,8 +647,8 @@
     Mat4##T mat4##T##_look_at(Vec3##T eye, Vec3##T focus, Vec3##T up)   \
     {                                                                   \
         Vec3##T f = vec3##T##_normalize(vec3##T##_sub(focus, eye));     \
-        Vec3##T s = vec3##T##_cross(f, vec3##T##_normalize(up));        \
-        Vec3##T u = vec3##T##_cross(vec3##T##_normalize(s), f);         \
+        Vec3##T s = vec3##T##_normalize(vec3##T##_cross(f, up));        \
+        Vec3##T u = vec3##T##_cross(s, f);                              \
                                                                         \
         Mat4##T res = init_mat4##T(1);                                  \
                                                                         \

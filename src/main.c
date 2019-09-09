@@ -134,8 +134,9 @@ int main(void)
         
         glUniform3f(shader.uniforms.camera_position, camera.pos.x, camera.pos.y, camera.pos.z);
 
+        mat4f_pprint(view_mat, "view_mat");
         glUniformMatrix4fv(shader.uniforms.view_matrix, 1, GL_FALSE, view_mat.data);
-        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_FALSE, projection_mat.data);
+        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_TRUE, projection_mat.data);
 
         glUniform3f(shader.uniforms.light_pos, light_pos.x, light_pos.y, light_pos.z);
         glUniform3f(shader.uniforms.light_col, light_col.r, light_col.g, light_col.b);
