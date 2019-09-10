@@ -147,13 +147,19 @@ Shader init_shaders(const char *vs_filepath, const char *gs_filepath, const char
     s.fs_filepath = malloc(fs_len+1);
     memcpy(s.fs_filepath, fs_filepath, fs_len+1);
 
+    s.uniforms.resolution        = glGetUniformLocation(s.id, "resolution");
+    s.uniforms.global_time       = glGetUniformLocation(s.id, "global_time");
+    
     s.uniforms.camera_position   = glGetUniformLocation(s.id, "cam_pos");
+    
     s.uniforms.view_matrix       = glGetUniformLocation(s.id, "V");
     s.uniforms.projection_matrix = glGetUniformLocation(s.id, "P");
     
     s.uniforms.light_pos = glGetUniformLocation(s.id, "light_position");
     s.uniforms.light_col = glGetUniformLocation(s.id, "light_color");
     s.uniforms.light_pow = glGetUniformLocation(s.id, "light_power");
+    
+    s.uniforms.texture_sampler = glGetUniformLocation(s.id, "texture_sampler");
 
     struct stat st;
     stat(vs_filepath, &st);

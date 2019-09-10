@@ -120,9 +120,11 @@ int main(void)
     Font font = init_font("./res/font_holstein.DDS");
     int nb_frames = 0;
     float accum_time = 0.0f;
+    float global_time = 0.0f;
     char fps_str[256] = "0";
     glfwSetCursorPos(window.handle, window.width/2, window.height/2);
-
+    glfwPollEvents();
+    
     do
     {
         update_camera(window, &camera, dt);
@@ -131,12 +133,13 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shader.id);
-        
+
+        glUniform2f(shader.uniforms.resolution, window.width, window.height);
+        glUniform1f(shader.uniforms.global_time, global_time);
         glUniform3f(shader.uniforms.camera_position, camera.pos.x, camera.pos.y, camera.pos.z);
 
-        mat4f_pprint(view_mat, "view_mat");
         glUniformMatrix4fv(shader.uniforms.view_matrix, 1, GL_FALSE, view_mat.data);
-        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_TRUE, projection_mat.data);
+        glUniformMatrix4fv(shader.uniforms.projection_matrix, 1, GL_FALSE, projection_mat.data);
 
         glUniform3f(shader.uniforms.light_pos, light_pos.x, light_pos.y, light_pos.z);
         glUniform3f(shader.uniforms.light_col, light_col.r, light_col.g, light_col.b);
@@ -148,7 +151,7 @@ int main(void)
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glDisableVertexAttribArray(0);
         
-        // print_text(font, fps_str, width-270, height-185, 15);
+        print_text(font, fps_str, width-270, height-180, 15);
 
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
@@ -159,6 +162,7 @@ int main(void)
         
         nb_frames++;
         accum_time += dt;
+        global_time += dt;
         if (accum_time >= 1.0f)
         {
             sprintf(fps_str, "%3d", nb_frames);

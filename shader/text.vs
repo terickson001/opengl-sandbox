@@ -9,7 +9,7 @@ void main()
 {
     vec2 position_homogeneous = position - vec2(400, 300);
     position_homogeneous /= vec2(400, 300);
-    gl_Position = vec4(position_homogeneous, 0, 1);
+    gl_Position = vec4(position_homogeneous, -1, 1);
 
     uv = vertex_uv;
 }

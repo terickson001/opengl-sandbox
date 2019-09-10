@@ -97,14 +97,14 @@ void print_text(Font font, const char *text, int x, int y, int size)
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
     // Enable transparency for font
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw
     glDrawArrays(GL_TRIANGLES, 0, array_size(vertices));
 
     // Disable transparency
-    glDisable(GL_BLEND);
+    // glDisable(GL_BLEND);
 
     // Cleanup
     glDisableVertexAttribArray(0);

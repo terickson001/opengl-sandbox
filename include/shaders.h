@@ -19,6 +19,9 @@ typedef struct Shader
     {
         struct
         {
+            GLint resolution;
+            GLint global_time;
+            
             GLint camera_position;
             
             GLint view_matrix;
@@ -27,6 +30,8 @@ typedef struct Shader
             GLint light_pos;
             GLint light_col;
             GLint light_pow;
+
+            GLint texture_sampler;
         } uniforms;
         GLint uni_arr[13];
     };
