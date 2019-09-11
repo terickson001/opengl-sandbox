@@ -118,6 +118,51 @@ float mandelbulb(vec3 p)
     return 0.5 * log(r) * r / dr;
 }
 
+const float FIXED_RADIUS = 1.0;
+const float FIXED_RADIUS2 = FIXED_RADIUS * FIXED_RADIUS;
+
+const float MIN_RADIUS = 0.5;
+const float MIN_RADIUS2 = MIN_RADIUS * MIN_RADIUS;
+
+void sphere_fold(inout vec3 z, inout float dz)
+{
+	float R2 = dot(z,z);
+	if (R2 < MIN_RADIUS2) { 
+		// linear inner scaling
+		float temp = (FIXED_RADIUS2/MIN_RADIUS2);
+		z *= temp;
+		dz*= temp;
+	} else if (R2<FIXED_RADIUS2) { 
+		// this is the actual sphere inversion
+		float temp =(FIXED_RADIUS2/R2);
+		z *= temp;
+		dz*= temp;
+	}
+}
+
+const float FOLDING_LIMIT = 0.2;
+void box_fold(inout vec3 z, inout float dz) {
+	z = clamp(z, -FOLDING_LIMIT, FOLDING_LIMIT) * 2.0 - z;
+}
+
+const float MAX_ITER = 5;
+const float SCALE = 1;
+float mandelbox(vec3 p)
+{
+    vec3 z = p;
+    float dr = 1;
+    for (int i = 0; i < MAX_ITER; i++)
+    {
+        box_fold(p, dr);
+        sphere_fold(p, dr);
+
+        p = SCALE*p + z;
+        dr = dr * abs(SCALE)+1.0;
+    }
+    float r = length(p);
+    return r/abs(dr);
+}
+
 float scene_dist(in vec3 p)
 {
     mat4 rot = rotate_mat(radians(global_time*45), vec3(0,1,0));
@@ -132,7 +177,8 @@ float scene_dist(in vec3 p)
     float cylinderz = inf_cylinderz_dist(p, rad);
     float cylinderx = inf_cylinderx_dist(p, rad);
 
-    return diff(diff(diff(diff(sphere, diff(torus, box)), cylindery), cylinderz), cylinderx);
+    return mandelbox(p);
+    // return diff(diff(diff(diff(sphere, diff(torus, box)), cylindery), cylinderz), cylinderx);
     // return diff(box, unify(unify(cylinderx, cylindery), cylinderz));//mix(sphere, torus, 0.6);
     // return mandelbulb(p/2)*2;
 }
