@@ -50,17 +50,17 @@ float inf_cylinderz_dist(vec3 p, float r)
 }
 
 // Operations
-float intersect_op(float a, float b)
+float intersect(float a, float b)
 {
     return max(a, b);
 }
 
-float union_op(float a, float b)
+float unify(float a, float b)
 {
     return min(a, b);
 }
 
-float difference_op(float a, float b)
+float diff(float a, float b)
 {
     return max(a, -b);
 }
@@ -93,23 +93,53 @@ mat4 rotate_mat(float angle, vec3 axis)
     return mat;
 }
 
+float mandelbulb(vec3 p)
+{
+    float power = 8;//1+abs(sin(global_time/10)*7);
+    vec3 z = p;
+    float dr =1;
+    float r;
+
+    for (int i = 0; i < 15; i++)
+    {
+        r = length(z);
+        if (r > 2)
+            break;
+
+        float theta = acos(z.z / r) * power;
+        float phi = atan(z.y, z.x) * power;
+        float zr = pow(r, power);
+        dr = pow(r, power - 1) * power * dr + 1;
+
+        z = zr * vec3(sin(theta) * cos(phi), sin(phi) * sin(theta), cos(theta));
+        z += p;
+    }
+
+    return 0.5 * log(r) * r / dr;
+}
+
 float scene_dist(in vec3 p)
 {
-    mat4 rot = rotate_mat(radians(45), vec3(0,0,1));
+    mat4 rot = rotate_mat(radians(global_time*45), vec3(0,1,0));
+    vec3 translate = vec3(0, 0.3*sin(global_time*3), 0);
     
-    float torus = torus_dist(p+vec3(0, sin(global_time), 0), 1, 0.5);
-    float box = box_dist((rot*vec4(p,0)).xyz, 0.9);
+    float torus = torus_dist(p+translate, 1, 0.5);
+    float box = box_dist((rot*vec4(p+translate,0)).xyz, 0.8);
     float sphere = sphere_dist(p, 1.2);
-    float cylindery = inf_cylindery_dist(p, 0.4);
-    float cylinderz = inf_cylinderz_dist(p, 0.4);
-    float cylinderx = inf_cylinderx_dist(p, 0.4);
 
-    return difference_op(difference_op(difference_op(difference_op(sphere, difference_op(torus, box)), cylindery), cylinderz), cylinderx);
+    float rad = 0.4;
+    float cylindery = inf_cylindery_dist(p, rad);
+    float cylinderz = inf_cylinderz_dist(p, rad);
+    float cylinderx = inf_cylinderx_dist(p, rad);
+
+    return diff(diff(diff(diff(sphere, diff(torus, box)), cylindery), cylinderz), cylinderx);
+    // return diff(box, unify(unify(cylinderx, cylindery), cylinderz));//mix(sphere, torus, 0.6);
+    // return mandelbulb(p/2)*2;
 }
 
 float scene_dist(in vec3 p, out vec3 color)
 {
-    color = vec3(.7, .2, .2);
+    color = vec3(0.5, 0.8, 0.6);
     return scene_dist(p);
     // return max(box_dist(p, 0.8), -sphere_dist(p, 0.95));
 }
@@ -117,7 +147,7 @@ float scene_dist(in vec3 p, out vec3 color)
 float march(in vec3 eye, in vec3 ray, in float max_distance, out vec3 color)
 {
     float depth = 0;
-    for (int i = 0; i < 1024; i++)
+    for (int i = 0; i < 2048; i++)
     {
         float dist = scene_dist(eye + ray*depth, color);
         if (dist < EPSILON)
@@ -151,11 +181,11 @@ vec3 ray_direction(float fov, vec2 size, vec2 fragCoord)
 void main()
 {
     vec3 light_position = vec3(4, 4, 4);
-    vec3 light_color = vec3(1, 1, 1);
-    float light_power = 15;
+    vec3 light_color = vec3(0.6, 0.3, 0.6);
+    float light_power = 50;
     
     vec3 view_ray = ray_direction(90, resolution, gl_FragCoord.xy);
-    vec3 world_ray = (V * vec4(view_ray, 0)).xyz;
+    vec3 world_ray = (vec4(view_ray, 0)*V).xyz;
     // vec3 eye = vec3(0, 0, 5);
     
     float max_dist = 100.0;
@@ -186,6 +216,6 @@ void main()
     color = vec4(
         base_color * ambience +
         base_color * light_color * light_power * cos_theta / (l_dist*l_dist) +
-        light_color * light_power * pow(cos_alpha, 5) / (l_dist*l_dist),
+        vec3(0.3)  * light_color * light_power * pow(cos_alpha, 5) / (l_dist*l_dist),
         1);
 }

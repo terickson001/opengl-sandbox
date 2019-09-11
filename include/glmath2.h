@@ -379,12 +379,12 @@
                                                                         \
     force_inline type mat##S##T##_get(const Mat##S##T mat, int i, int j) \
     {                                                                   \
-        return mat.data[i*S+j];                                         \
+        return mat.data[j*S+i];                                         \
     }                                                                   \
                                                                         \
     force_inline void mat##S##T##_set(Mat##S##T *mat, int i, int j, type x) \
     {                                                                   \
-        mat->data[i*S+j] = x;                                           \
+        mat->data[j*S+i] = x;                                           \
     }                                                                   \
                                                                         \
     force_inline void mat##S##T##_set_row(Mat##S##T *mat, int i, Vec##S##T vec) \
