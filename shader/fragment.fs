@@ -3,6 +3,7 @@
 in VS_OUT {
     vec2 uv;
     vec3 position_m;
+    vec3 normal;
     vec3 normal_mv;
     vec3 eye_direction_mv;
     vec3 light_direction_mv;
@@ -24,8 +25,8 @@ uniform vec3 light_position_m;
 const float specularity = 1;
 void main()
 {
-    vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
-    vec3 material_ambient_color = 0.0f * material_diffuse_color;
+    vec3 material_diffuse_color = frag.normal*0.7;//texture(diffuse_sampler, frag.uv).rgb;
+    vec3 material_ambient_color = 0.3f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 
     float dist = length(light_position_m - frag.position_m);
@@ -38,7 +39,7 @@ void main()
     float cos_theta = clamp(dot(n, l), 0, 1);
     float cos_alpha = clamp(dot(E, R), 0, 1);
 
-    color = 
+    color =
         // Ambient : simulates indirect lighting
         material_ambient_color +
         // Diffuse : "color" of the object

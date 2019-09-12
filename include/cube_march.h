@@ -554,6 +554,8 @@ static const int edge_corner_B[12] = {
     7
 };
 
+Vec3f *gen_gradients(Vec3f res);
+void perlin_noise(Vec4f *pos, Vec3f res, Vec3f *gradients);
 Model cube_march_mesh(Vec4f *field, Vec3f res, float threshold);
 
 #endif

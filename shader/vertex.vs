@@ -14,6 +14,7 @@ layout(location = 5) in mat4 M;
 out VS_OUT {
     vec2 uv;
     vec3 position_m;
+    vec3 normal;
     vec3 normal_mv;
     vec3 eye_direction_mv;
     vec3 light_direction_mv;
@@ -35,6 +36,7 @@ void main()
 {
     mat4 MV = V*M;
 
+    vert.normal = vertex_normal;
     // Position of the vertex, in worldspace
     vert.position_m =  (M * vec4(vertex_position,1)).xyz;
     

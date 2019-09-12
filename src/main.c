@@ -76,23 +76,44 @@ Vec4f *gen_field(Vec3f res)
             {
                 field[(int)(z*res.x*res.y + y*res.x + x)] = init_vec4f(x, y, z, 0);
                 if (y < 4)
-                {
-                    printf("ADDING FLOOR\n");
                     field[(int)(z*res.x*res.y + y*res.x + x)].w = -1;
-                }
             }
-    field[(int)((0)*res.x*res.y + (0)*res.x+(0))].w = -1;
-    field[(int)((0)*res.x*res.y + (0)*res.x+(res.x-1))].w = -1;
-    field[(int)((0)*res.x*res.y + (res.y-1)*res.x+(0))].w = -1;
-    field[(int)((0)*res.x*res.y + (res.y-1)*res.x+(res.x-1))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (0)*res.x+(0))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (0)*res.x+(res.x-1))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x+(0))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x+(res.x-1))].w = -1;
+    field[(int)((0)*res.x*res.y +       (0)*res.x +       (0))].w       = -1;
+    field[(int)((0)*res.x*res.y +       (0)*res.x +       (res.x-1))].w = -1;
+    field[(int)((0)*res.x*res.y +       (res.y-1)*res.x + (0))].w       = -1;
+    field[(int)((0)*res.x*res.y +       (res.y-1)*res.x + (res.x-1))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (0)*res.x +       (0))].w       = -1;
+    field[(int)((res.z-1)*res.x*res.y + (0)*res.x +       (res.x-1))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x + (0))].w       = -1;
+    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x + (res.x-1))].w = -1;
 
     field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
     field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
+    field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2+1))].w = -1;
+    field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2+1))].w = -1;
     
+    return field;
+}
+
+Vec4f *gen_noise_field(Vec3f res)
+{
+    Vec4f *field = malloc(res.x*res.y*res.z*sizeof(Vec4f));
+
+    Vec3f *gradients = gen_gradients(res);
+    float min =  100000;
+    float max = -100000;
+    for (int z = 0; z < res.z; z++)
+        for (int y = 0; y < res.y; y++)
+            for (int x = 0; x < res.x; x++)
+            {
+                Vec4f *curr = &field[(int)(z*res.y*res.x + y*res.x + x)];
+                *curr = init_vec4f(x, y, z, 0);
+                perlin_noise(curr, res, gradients);
+                max = curr->w > max ? curr->w : max;
+                min = curr->w < min ? curr->w : min;
+            }
+
+    printf("PERLIN NOISE:\n  MAX: %.2f\n  MIN: %.2f\n", max, min);
     return field;
 }
 
@@ -103,8 +124,9 @@ int main(void)
     Window window = init_gl(width, height, "[$float$] Hello, World");
 
     Vec3f field_res = init_vec3f(10, 10, 10);
-    Vec4f *field = gen_field(field_res);
-    Model cube_mesh = cube_march_mesh(field, field_res, -0.5);
+    Vec4f *field = gen_noise_field(field_res);
+    Model cube_mesh = cube_march_mesh(field, field_res, 0);
+    compute_tangent_basis(&cube_mesh);
     create_model_vbos(&cube_mesh);
     Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
@@ -131,9 +153,9 @@ int main(void)
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
 
     // Light settings
-    Vec3f light_pos = init_vec3f(0, 0, 0);
+    Vec3f light_pos = init_vec3f(5, 5, -5);
     Vec3f light_col = init_vec3f(1, 1, 1);
-    float light_pow = 500.0f;
+    float light_pow = 80.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
     Font font = init_font("./res/font_holstein.DDS");
