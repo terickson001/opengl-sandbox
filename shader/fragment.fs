@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 
 in VS_OUT {
     vec2 uv;
@@ -25,7 +25,7 @@ const float specularity = 1;
 void main()
 {
     vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
-    vec3 material_ambient_color = 0.3f * material_diffuse_color;
+    vec3 material_ambient_color = 0.0f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 
     float dist = length(light_position_m - frag.position_m);

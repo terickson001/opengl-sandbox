@@ -31,7 +31,7 @@ Window init_gl(int w, int h, char *title)
     }
 
     glfwWindowHint(GLFW_SAMPLES, 16); // 16x antialiasing
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // OpenGL v.3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL v.4.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -81,8 +81,18 @@ Vec4f *gen_field(Vec3f res)
                     field[(int)(z*res.x*res.y + y*res.x + x)].w = -1;
                 }
             }
+    field[(int)((0)*res.x*res.y + (0)*res.x+(0))].w = -1;
+    field[(int)((0)*res.x*res.y + (0)*res.x+(res.x-1))].w = -1;
+    field[(int)((0)*res.x*res.y + (res.y-1)*res.x+(0))].w = -1;
+    field[(int)((0)*res.x*res.y + (res.y-1)*res.x+(res.x-1))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (0)*res.x+(0))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (0)*res.x+(res.x-1))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x+(0))].w = -1;
+    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x+(res.x-1))].w = -1;
+
     field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
     field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
+    
     return field;
 }
 
@@ -105,6 +115,7 @@ int main(void)
 
     // Load shaders
     Shader shader = init_shaders("./shader/vertex.vs", 0, "./shader/fragment.fs");
+    // Shader shader = init_shaders("./shader/vertex.vs", "./shader/geometry.gs", "./shader/fragment.fs");
 
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -120,9 +131,9 @@ int main(void)
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
 
     // Light settings
-    Vec3f light_pos = init_vec3f(4, 4, 4);
+    Vec3f light_pos = init_vec3f(0, 0, 0);
     Vec3f light_col = init_vec3f(1, 1, 1);
-    float light_pow = 50.0f;
+    float light_pow = 500.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
     Font font = init_font("./res/font_holstein.DDS");
