@@ -20,6 +20,7 @@
 #include "entity.h"
 #include "primitive.h"
 #include "keyboard.h"
+#include "cube_march.h"
 
 Window init_gl(int w, int h, char *title)
 {
@@ -66,49 +67,44 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
+Vec4f *gen_field(Vec3f res)
+{
+    Vec4f *field = malloc(res.x*res.y*res.z*sizeof(Vec4f));
+    for (int z = 0; z < res.z; z++)
+        for (int y = 0; y < res.y; y++)
+            for (int x = 0; x < res.x; x++)
+            {
+                field[(int)(z*res.x*res.y + y*res.x + x)] = init_vec4f(x, y, z, 0);
+                if (y > res.y-3)
+                {
+                    printf("ADDING FLOOR\n");
+                    field[(int)(z*res.x*res.y + y*res.x + x)].w = -1;
+                }
+            }
+    return field;
+}
+
 int main(void)
 {
     int width = 1024;
     int height = 768;
     Window window = init_gl(width, height, "[$float$] Hello, World");
-    
+
+    Vec3f field_res = init_vec3f(10, 10, 10);
+    Vec4f *field = gen_field(field_res);
+    Model cube_mesh = cube_march_mesh(field, field_res, -0.5);
+    Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
+    Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
     // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Load OBJs
-    Model model = make_model("./res/cylinder.obj", true, true);
-    Model suzanne_m = make_model("./res/suzanne.obj", true, true);
-    Model cube = get_prim_cube();
-    Model pyramid = get_prim_pyramid();
-    Model diamond = get_prim_diamond();
-    //invert_uvs(&cube);
-    
-    create_model_vbos(&model);
-    create_model_vbos(&suzanne_m);
-    
     // Load shaders
-    // Shader shader = init_shaders("./shader/vertex.vs", "./shader/geometry.gs", "./shader/fragment.fs");
     Shader shader = init_shaders("./shader/vertex.vs", 0, "./shader/fragment.fs");
 
-    // Load texture
-    Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
-    Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
-    // Texture suzanne_t = load_texture("./res/normal_default.png", 0, 0);
-    // Texture grass     = load_texture("./res/grass64.png", 0, 0);
-    
-    Entity column        = make_entity(&model,     &brick,     init_vec3f(0, 1, 0), init_vec3f(0, 0, -1));
-    Entity suzanne       = make_entity(&suzanne_m, &suzanne_t, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
-    Entity suzanne_2     = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    /* Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
-    /* Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0)); */
-    /* Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
-    
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
-    // Mat4f projection_mat = mat4f_ortho(-10, 10, -10, 10, 0, 100);
-
     Mat4f view_mat;
 
     // Initialize delta time
@@ -119,7 +115,7 @@ int main(void)
     // Initialize camera
     Vec3f cam_pos = init_vec3f(4, 4, 4);
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
-    
+
     // Light settings
     Vec3f light_pos = init_vec3f(4, 4, 4);
     Vec3f light_col = init_vec3f(1, 1, 1);
@@ -130,6 +126,7 @@ int main(void)
     int nb_frames = 0;
     float accum_time = 0.0;
     char fps_str[256] = "0";
+    
     do
     {
         update_camera(window, &camera, dt);
@@ -148,13 +145,8 @@ int main(void)
         glUniform3f(shader.uniforms.light_col, light_col.data[0], light_col.data[1], light_col.data[2]);
         glUniform1f(shader.uniforms.light_pow, light_pow);
 
-        draw_entity(shader, column);
-        draw_entity(shader, suzanne);
-        draw_entity(shader, suzanne_2);
-        // draw_entity(shader, grass_block);
-        // draw_entity(shader, grass_pyramid);
-        // draw_entity(shader, grass_diamond);
-
+        // draw_model(shader, cube_mesh);
+        draw_entity(shader, map);
         print_text(font, fps_str, width-270, height-185, 15);
         
         glfwSwapBuffers(window.handle);
@@ -181,8 +173,6 @@ int main(void)
            glfwWindowShouldClose(window.handle) == 0);
 
     // Cleanup
-    destroy_model(&model);
-    destroy_texture(brick);
     destroy_font(font);
 
     glDeleteProgram(shader.id);
