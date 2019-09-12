@@ -75,12 +75,14 @@ Vec4f *gen_field(Vec3f res)
             for (int x = 0; x < res.x; x++)
             {
                 field[(int)(z*res.x*res.y + y*res.x + x)] = init_vec4f(x, y, z, 0);
-                if (y > res.y-3)
+                if (y < 4)
                 {
                     printf("ADDING FLOOR\n");
                     field[(int)(z*res.x*res.y + y*res.x + x)].w = -1;
                 }
             }
+    field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
+    field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
     return field;
 }
 
@@ -93,6 +95,7 @@ int main(void)
     Vec3f field_res = init_vec3f(10, 10, 10);
     Vec4f *field = gen_field(field_res);
     Model cube_mesh = cube_march_mesh(field, field_res, -0.5);
+    create_model_vbos(&cube_mesh);
     Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
     // Create VAO
