@@ -25,7 +25,7 @@ uniform vec3 light_position_m;
 const float specularity = 1;
 void main()
 {
-    vec3 material_diffuse_color = frag.normal*0.7;//texture(diffuse_sampler, frag.uv).rgb;
+    vec3 material_diffuse_color = (abs(frag.normal))*1;//texture(diffuse_sampler, frag.uv).rgb;
     vec3 material_ambient_color = 0.3f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 

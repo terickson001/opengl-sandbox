@@ -45,23 +45,24 @@
 #define _VECTOR_OPS_UNION_ELEMS9(t)  _VECTOR_OPS_UNION_ELEMS4(t)
 #define _VECTOR_OPS_UNION_ELEMS10(t) _VECTOR_OPS_UNION_ELEMS4(t)
 
-#define VECTOR_OPS_TYPE(T, S, type)             \
-    typedef struct Vec##S##T                    \
-    {                                           \
-        union                                   \
-        {                                       \
-            type data[S];                       \
-            struct                              \
-            {                                   \
+#define VECTOR_OPS_TYPE(T, S, type)                 \
+    typedef struct Vec##S##T                        \
+    {                                               \
+        union                                       \
+        {                                           \
+            type data[S];                           \
+            struct                                  \
+            {                                       \
                 _VECTOR_OPS_UNION_ELEMS##S(type);   \
-            };                                  \
-        };                                      \
+            };                                      \
+        };                                          \
     } Vec##S##T;
 
 #define VECTOR_OPS_DEC(T, S, type)                                  \
     Vec##S##T make_vec##S##T();                                     \
     Vec##S##T init_vec##S##T(_VECTOR_OPS_SET_ARGS##S(type));        \
     Vec##S##T copy_vec##S##T(Vec##S##T vec);                        \
+    Vec##S##T conv_vec##S##T(type *data, int size);                 \
     void vec##S##T##_fill(Vec##S##T *vec, type val);                \
     void vec##S##T##_zero(Vec##S##T *vec);                          \
     void vec##S##T##_set(Vec##S##T *vec, int i, type x);            \
@@ -114,6 +115,13 @@
         Vec##S##T copy = make_vec##S##T();                              \
         memcpy(copy.data, vec.data, sizeof(type)*S);                    \
         return copy;                                                    \
+    }                                                                   \
+                                                                        \
+    force_inline Vec##S##T conv_vec##S##T(type *data, int size)         \
+    {                                                                   \
+        Vec##S##T conv = make_vec##S##T();                              \
+        memcpy(conv.data, data, sizeof(type)*(S>size?size:S));          \
+        return conv;                                                    \
     }                                                                   \
                                                                         \
     force_inline void vec##S##T##_fill(Vec##S##T *vec, type val)        \

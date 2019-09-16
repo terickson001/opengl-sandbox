@@ -81,20 +81,24 @@ void update_camera_position(Window win, Camera *cam, float dt)
     if (cam->detach)
         return;
 
+    float speed_mod = 1;
+    if (key_down(GLFW_KEY_LEFT_SHIFT))
+        speed_mod = 0.3;
+    
     if (key_down(GLFW_KEY_W))
-        cam->pos = vec3f_add(cam->pos, vec3f_scale(cam->dir, dt*cam->move_speed));
+        cam->pos = vec3f_add(cam->pos, vec3f_scale(cam->dir, dt*cam->move_speed*speed_mod));
     if (key_down(GLFW_KEY_S))
-        cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->dir, dt*cam->move_speed));
+        cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->dir, dt*cam->move_speed*speed_mod));
     
     if (key_down(GLFW_KEY_D))
-        cam->pos = vec3f_add(cam->pos, vec3f_scale(cam->right, dt*cam->move_speed));
+        cam->pos = vec3f_add(cam->pos, vec3f_scale(cam->right, dt*cam->move_speed*speed_mod));
     if (key_down(GLFW_KEY_A))
-        cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->right, dt*cam->move_speed));
+        cam->pos = vec3f_sub(cam->pos, vec3f_scale(cam->right, dt*cam->move_speed*speed_mod));
 
     if (key_down(GLFW_KEY_SPACE))
-        cam->pos = vec3f_add(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
-    if (key_down(GLFW_KEY_LEFT_SHIFT))
-        cam->pos = vec3f_sub(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
+        cam->pos = vec3f_add(cam->pos, init_vec3f(0, dt*cam->move_speed*speed_mod, 0));
+    if (key_down(GLFW_KEY_LEFT_CONTROL))
+        cam->pos = vec3f_sub(cam->pos, init_vec3f(0, dt*cam->move_speed*speed_mod, 0));
 }
 
 void update_camera(Window win, Camera *cam, float dt)

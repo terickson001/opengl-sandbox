@@ -95,7 +95,7 @@ Vec4f *gen_field(Vec3f res)
     return field;
 }
 
-Vec4f *gen_noise_field(Vec3f res)
+Vec4f *gen_noise_field(Vec3f res, Vec2f *limits)
 {
     Vec4f *field = malloc(res.x*res.y*res.z*sizeof(Vec4f));
 
@@ -113,8 +113,27 @@ Vec4f *gen_noise_field(Vec3f res)
                 min = curr->w < min ? curr->w : min;
             }
 
+    
     printf("PERLIN NOISE:\n  MAX: %.2f\n  MIN: %.2f\n", max, min);
+    limits->x = min;
+    limits->y = max;
     return field;
+}
+
+Model generate_terrain(Vec3f res)
+{
+    Vec2f limits = {0};
+    Vec4f *field = gen_noise_field(res, &limits);
+    float threshold = lerp(limits.x, limits.y, 0.4);
+    
+    Model cube_mesh = cube_march_mesh(field, res, threshold);
+    compute_tangent_basis(&cube_mesh);
+    create_model_vbos(&cube_mesh);
+    
+    free(field);
+    printf("Surface threshold: %.3f\n", threshold);
+    
+    return cube_mesh;
 }
 
 int main(void)
@@ -123,11 +142,9 @@ int main(void)
     int height = 768;
     Window window = init_gl(width, height, "[$float$] Hello, World");
 
-    Vec3f field_res = init_vec3f(10, 10, 10);
-    Vec4f *field = gen_noise_field(field_res);
-    Model cube_mesh = cube_march_mesh(field, field_res, 0);
-    compute_tangent_basis(&cube_mesh);
-    create_model_vbos(&cube_mesh);
+    Vec3f field_res = init_vec3f(300, 50, 100);
+    Model cube_mesh = generate_terrain(field_res);
+    
     Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
     // Create VAO
@@ -155,7 +172,7 @@ int main(void)
     // Light settings
     Vec3f light_pos = init_vec3f(5, 5, -5);
     Vec3f light_col = init_vec3f(1, 1, 1);
-    float light_pow = 80.0f;
+    float light_pow = 50.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
     Font font = init_font("./res/font_holstein.DDS");
@@ -188,6 +205,8 @@ int main(void)
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
 
+        if (key_down(GLFW_KEY_R))
+            *map.model = generate_terrain(field_res);
         current_time = glfwGetTime();
         dt = (float)(current_time - last_time);
         last_time = current_time;
