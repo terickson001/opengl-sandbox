@@ -42,6 +42,7 @@ typedef struct Shader
 
 GLuint load_shaders(const char *vertex_file_path, const char *geom_file_path, const char *fragment_file_path);
 Shader init_shaders(const char *vs_filepath, const char *gs_filepath, const char *fs_filepath);
+GLuint load_compute_shader(const char *compute_filepath);
 b32 shader_check_update(Shader *s);
 void destroy_shaders(Shader s);
 

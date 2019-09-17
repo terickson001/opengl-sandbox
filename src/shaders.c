@@ -11,6 +11,60 @@
 
 #include "util.h"
 
+GLuint load_compute_shader(const char *compute_file_path)
+{
+    GLuint cs_id = glCreateShader(GL_COMPUTE_SHADER);
+
+    // Read the vertex shader code from the file
+    char *cs_code;
+    if (!(cs_code = load_file(compute_file_path)))
+    {
+        fprintf(stderr, "Failed to open compute shader '%s'\n", compute_file_path);
+        return 0;
+    }
+
+    GLint result = GL_FALSE;
+    int info_log_length;
+
+    printf("Compiling shader: %s\n", compute_file_path);
+    char const *cs_source_pointer = cs_code;
+    glShaderSource(cs_id, 1, &cs_source_pointer, 0);
+    glCompileShader(cs_id);
+
+    glGetShaderiv(cs_id, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(cs_id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if (info_log_length > 0)
+    {
+        char cs_err_msg[info_log_length+1];
+        glGetShaderInfoLog(cs_id, info_log_length, 0, cs_err_msg);
+        printf("%s\n", cs_err_msg);
+    }
+
+    // Link the program
+    printf("Linking program\n");
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, cs_id);
+    glLinkProgram(program_id);
+
+    //Check the program
+    glGetProgramiv(program_id, GL_LINK_STATUS, &result);
+    glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if (info_log_length > 0)
+    {
+        char program_err_msg[info_log_length+1];
+        glGetProgramInfoLog(program_id, info_log_length, 0, program_err_msg);
+        printf("%s\n", program_err_msg);
+    }
+
+    glDetachShader(program_id, cs_id);
+
+    glDeleteShader(cs_id);
+
+    free(cs_code);
+    
+    return program_id;
+}
+
 GLuint load_shaders(const char *vertex_file_path, const char *geom_file_path, const char *fragment_file_path)
 {
     // Create the shaders

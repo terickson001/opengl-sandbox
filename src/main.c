@@ -67,34 +67,6 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
-Vec4f *gen_field(Vec3f res)
-{
-    Vec4f *field = malloc(res.x*res.y*res.z*sizeof(Vec4f));
-    for (int z = 0; z < res.z; z++)
-        for (int y = 0; y < res.y; y++)
-            for (int x = 0; x < res.x; x++)
-            {
-                field[(int)(z*res.x*res.y + y*res.x + x)] = init_vec4f(x, y, z, 0);
-                if (y < 4)
-                    field[(int)(z*res.x*res.y + y*res.x + x)].w = -1;
-            }
-    field[(int)((0)*res.x*res.y +       (0)*res.x +       (0))].w       = -1;
-    field[(int)((0)*res.x*res.y +       (0)*res.x +       (res.x-1))].w = -1;
-    field[(int)((0)*res.x*res.y +       (res.y-1)*res.x + (0))].w       = -1;
-    field[(int)((0)*res.x*res.y +       (res.y-1)*res.x + (res.x-1))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (0)*res.x +       (0))].w       = -1;
-    field[(int)((res.z-1)*res.x*res.y + (0)*res.x +       (res.x-1))].w = -1;
-    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x + (0))].w       = -1;
-    field[(int)((res.z-1)*res.x*res.y + (res.y-1)*res.x + (res.x-1))].w = -1;
-
-    field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
-    field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2))].w = -1;
-    field[(int)((res.z/2+1)*res.x*res.y + (4)*res.x+(res.x/2+1))].w = -1;
-    field[(int)((res.z/2)*res.x*res.y + (4)*res.x+(res.x/2+1))].w = -1;
-    
-    return field;
-}
-
 Vec4f *gen_noise_field(Vec3f res, Vec2f *limits)
 {
     Vec4f *field = malloc(res.x*res.y*res.z*sizeof(Vec4f));
@@ -112,7 +84,6 @@ Vec4f *gen_noise_field(Vec3f res, Vec2f *limits)
                 max = curr->w > max ? curr->w : max;
                 min = curr->w < min ? curr->w : min;
             }
-
     
     printf("PERLIN NOISE:\n  MAX: %.2f\n  MIN: %.2f\n", max, min);
     limits->x = min;
@@ -120,19 +91,42 @@ Vec4f *gen_noise_field(Vec3f res, Vec2f *limits)
     return field;
 }
 
-Model generate_terrain(Vec3f res)
+Model generate_terrain(Vec3f res, GLuint program)
 {
-    Vec2f limits = {0};
-    Vec4f *field = gen_noise_field(res, &limits);
-    float threshold = lerp(limits.x, limits.y, 0.4);
+    printf("Producing Noise...\n");
+
+    glUseProgram(program);
+    GLint res_uniform = glGetUniformLocation(program, "res");
+    glUniform3i(res_uniform, (int)res.x, (int)res.y, (int)res.z);
     
-    Model cube_mesh = cube_march_mesh(field, res, threshold);
+    Vec4f *field = malloc(res.z*res.y*res.x*sizeof(Vec4f));
+    Vec3f *gradients = gen_gradients(res);
+    
+    GLuint field_buff, gradient_buff;
+    glGenBuffers(1, &field_buff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, field_buff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vec4f)*res.x*res.y*res.z, field, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, field_buff);
+    
+    glGenBuffers(1, &gradient_buff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gradient_buff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vec3f)*(res.x+1)*(res.y+1)*(res.z+1), gradients, GL_STATIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, gradient_buff);
+
+    free(field);
+    free(gradients);
+    
+    glDispatchCompute(res.x, res.y, res.z);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    field = glMapNamedBuffer(field_buff, GL_READ_ONLY);
+    printf("Done\n");
+    
+    printf("Marching Cubes...\n");
+    Model cube_mesh = cube_march_mesh(field, res, -0.1);
+    printf("Done\n");
     compute_tangent_basis(&cube_mesh);
     create_model_vbos(&cube_mesh);
-    
-    free(field);
-    printf("Surface threshold: %.3f\n", threshold);
-    
+
     return cube_mesh;
 }
 
@@ -143,10 +137,15 @@ int main(void)
     Window window = init_gl(width, height, "[$float$] Hello, World");
 
     Vec3f field_res = init_vec3f(300, 50, 100);
-    Model cube_mesh = generate_terrain(field_res);
+
+    GLuint noise_compute_id = load_compute_shader("./shader/perlin_noise.compute");
+    // GLuint march_compute_id = load_compute_shader("./shader/marching_cube.compute");
+
+    Model cube_mesh = generate_terrain(field_res, noise_compute_id);
     
     Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
+    
     // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -206,7 +205,7 @@ int main(void)
         glfwPollEvents();
 
         if (key_down(GLFW_KEY_R))
-            *map.model = generate_terrain(field_res);
+            *map.model = generate_terrain(field_res, noise_compute_id);
         current_time = glfwGetTime();
         dt = (float)(current_time - last_time);
         last_time = current_time;
