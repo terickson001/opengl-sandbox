@@ -1,5 +1,8 @@
 #version 430
+#extension GL_ARB_shader_atomic_counter_ops : require
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 4) uniform atomic_uint vert_count;
 
 uniform ivec3 res;
 uniform float threshold;
@@ -12,99 +15,419 @@ layout(std430, binding = 1) buffer vert_buff
 {
     vec3[] vertices;
 };
-layout(std430, binding = 2) buffer norm_buff
+layout(std430, binding = 2) buffer uv_buff
+{
+    vec2[] uvs;
+};
+layout(std430, binding = 3) buffer norm_buff
 {
     vec3[] normals;
 };
-layout(std430, binding = 3) buffer uv_buff
+layout(std430, binding = 5) buffer triangulation_buff
 {
-    vec2[] uvs;
+    int[256][16] triangulation;
 };
 
 ivec3 pos = ivec3(gl_GlobalInvocationID.xyz);
 
+const int edges[256] = {
+    0x0,
+    0x109,
+    0x203,
+    0x30a,
+    0x406,
+    0x50f,
+    0x605,
+    0x70c,
+    0x80c,
+    0x905,
+    0xa0f,
+    0xb06,
+    0xc0a,
+    0xd03,
+    0xe09,
+    0xf00,
+    0x190,
+    0x99,
+    0x393,
+    0x29a,
+    0x596,
+    0x49f,
+    0x795,
+    0x69c,
+    0x99c,
+    0x895,
+    0xb9f,
+    0xa96,
+    0xd9a,
+    0xc93,
+    0xf99,
+    0xe90,
+    0x230,
+    0x339,
+    0x33,
+    0x13a,
+    0x636,
+    0x73f,
+    0x435,
+    0x53c,
+    0xa3c,
+    0xb35,
+    0x83f,
+    0x936,
+    0xe3a,
+    0xf33,
+    0xc39,
+    0xd30,
+    0x3a0,
+    0x2a9,
+    0x1a3,
+    0xaa,
+    0x7a6,
+    0x6af,
+    0x5a5,
+    0x4ac,
+    0xbac,
+    0xaa5,
+    0x9af,
+    0x8a6,
+    0xfaa,
+    0xea3,
+    0xda9,
+    0xca0,
+    0x460,
+    0x569,
+    0x663,
+    0x76a,
+    0x66,
+    0x16f,
+    0x265,
+    0x36c,
+    0xc6c,
+    0xd65,
+    0xe6f,
+    0xf66,
+    0x86a,
+    0x963,
+    0xa69,
+    0xb60,
+    0x5f0,
+    0x4f9,
+    0x7f3,
+    0x6fa,
+    0x1f6,
+    0xff,
+    0x3f5,
+    0x2fc,
+    0xdfc,
+    0xcf5,
+    0xfff,
+    0xef6,
+    0x9fa,
+    0x8f3,
+    0xbf9,
+    0xaf0,
+    0x650,
+    0x759,
+    0x453,
+    0x55a,
+    0x256,
+    0x35f,
+    0x55,
+    0x15c,
+    0xe5c,
+    0xf55,
+    0xc5f,
+    0xd56,
+    0xa5a,
+    0xb53,
+    0x859,
+    0x950,
+    0x7c0,
+    0x6c9,
+    0x5c3,
+    0x4ca,
+    0x3c6,
+    0x2cf,
+    0x1c5,
+    0xcc,
+    0xfcc,
+    0xec5,
+    0xdcf,
+    0xcc6,
+    0xbca,
+    0xac3,
+    0x9c9,
+    0x8c0,
+    0x8c0,
+    0x9c9,
+    0xac3,
+    0xbca,
+    0xcc6,
+    0xdcf,
+    0xec5,
+    0xfcc,
+    0xcc,
+    0x1c5,
+    0x2cf,
+    0x3c6,
+    0x4ca,
+    0x5c3,
+    0x6c9,
+    0x7c0,
+    0x950,
+    0x859,
+    0xb53,
+    0xa5a,
+    0xd56,
+    0xc5f,
+    0xf55,
+    0xe5c,
+    0x15c,
+    0x55,
+    0x35f,
+    0x256,
+    0x55a,
+    0x453,
+    0x759,
+    0x650,
+    0xaf0,
+    0xbf9,
+    0x8f3,
+    0x9fa,
+    0xef6,
+    0xfff,
+    0xcf5,
+    0xdfc,
+    0x2fc,
+    0x3f5,
+    0xff,
+    0x1f6,
+    0x6fa,
+    0x7f3,
+    0x4f9,
+    0x5f0,
+    0xb60,
+    0xa69,
+    0x963,
+    0x86a,
+    0xf66,
+    0xe6f,
+    0xd65,
+    0xc6c,
+    0x36c,
+    0x265,
+    0x16f,
+    0x66,
+    0x76a,
+    0x663,
+    0x569,
+    0x460,
+    0xca0,
+    0xda9,
+    0xea3,
+    0xfaa,
+    0x8a6,
+    0x9af,
+    0xaa5,
+    0xbac,
+    0x4ac,
+    0x5a5,
+    0x6af,
+    0x7a6,
+    0xaa,
+    0x1a3,
+    0x2a9,
+    0x3a0,
+    0xd30,
+    0xc39,
+    0xf33,
+    0xe3a,
+    0x936,
+    0x83f,
+    0xb35,
+    0xa3c,
+    0x53c,
+    0x435,
+    0x73f,
+    0x636,
+    0x13a,
+    0x33,
+    0x339,
+    0x230,
+    0xe90,
+    0xf99,
+    0xc93,
+    0xd9a,
+    0xa96,
+    0xb9f,
+    0x895,
+    0x99c,
+    0x69c,
+    0x795,
+    0x49f,
+    0x596,
+    0x29a,
+    0x393,
+    0x99,
+    0x190,
+    0xf00,
+    0xe09,
+    0xd03,
+    0xc0a,
+    0xb06,
+    0xa0f,
+    0x905,
+    0x80c,
+    0x70c,
+    0x605,
+    0x50f,
+    0x406,
+    0x30a,
+    0x203,
+    0x109,
+    0x0
+};
+
+const int edge_corner_A[12] = {
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    0,
+    1,
+    2,
+    3
+};
+
+const int edge_corner_B[12] = {
+    1,
+    2,
+    3,
+    0,
+    5,
+    6,
+    7,
+    4,
+    4,
+    5,
+    6,
+    7
+};
+
+int field_index(ivec3 loc)
+{
+    return loc.z*res.x*res.y + loc.y*res.x + loc.x;
+}
+
+vec3 interp_vert(vec4 a, vec4 b)
+{
+    float t = (threshold - a.w) / (b.w-a.w);
+
+    float x = mix(a.x, b.x, t);
+    float y = mix(a.y, b.y, t);
+    float z = mix(a.z, b.z, t);
+
+    return vec3(x, y, z);
+}
+
+vec3 homogenize(vec3 p)
+{
+    float half_largest_dim = (max(res.x, max(res.y, res.z))+2)/2;
+    return (p / half_largest_dim) - 1;
+}
+
 void main()
 {
-    for (int z = -1; z < res.z; z++)
+    int x = pos.x-1;
+    int y = pos.y-1;
+    int z = pos.z-1;
+    
+    vec4 cube_corners[8];
+    cube_corners[0] = vec4(x,   y,   z,   1);
+    cube_corners[1] = vec4(x+1, y,   z,   1);
+    cube_corners[2] = vec4(x+1, y,   z+1, 1);
+    cube_corners[3] = vec4(x,   y,   z+1, 1);
+    cube_corners[4] = vec4(x,   y+1, z,   1);
+    cube_corners[5] = vec4(x+1, y+1, z,   1);
+    cube_corners[6] = vec4(x+1, y+1, z+1, 1);
+    cube_corners[7] = vec4(x,   y+1, z+1, 1);
+    
+    if (x != -1      && y != -1      && z != -1)
+        cube_corners[0] = field[field_index(ivec3(x,   y,   z))];
+    if (x != res.x-1 && y != -1      && z != -1)
+        cube_corners[1] = field[field_index(ivec3(x+1, y,   z))];
+    if (x != res.x-1 && y != -1      && z != res.z-1)
+        cube_corners[2] = field[field_index(ivec3(x+1, y,   z+1))];
+    if (x != -1      && y != -1      && z != res.z-1)
+        cube_corners[3] = field[field_index(ivec3(x,   y,   z+1))];
+    if (x != -1      && y != res.y-1 && z != -1)
+        cube_corners[4] = field[field_index(ivec3(x,   y+1, z))];
+    if (x != res.x-1 && y != res.y-1 && z != -1)
+        cube_corners[5] = field[field_index(ivec3(x+1, y+1, z))];
+    if (x != res.x-1 && y != res.y-1 && z != res.z-1)
+        cube_corners[6] = field[field_index(ivec3(x+1, y+1, z+1))];
+    if (x != -1       && y != res.y-1 && z != res.z-1)
+        cube_corners[7] = field[field_index(ivec3(x,   y+1, z+1))];
+
+    int variation_index = 0;
+    if (cube_corners[0].w < threshold) variation_index |= 1;
+    if (cube_corners[1].w < threshold) variation_index |= 2;
+    if (cube_corners[2].w < threshold) variation_index |= 4;
+    if (cube_corners[3].w < threshold) variation_index |= 8;
+    if (cube_corners[4].w < threshold) variation_index |= 16;
+    if (cube_corners[5].w < threshold) variation_index |= 32;
+    if (cube_corners[6].w < threshold) variation_index |= 64;
+    if (cube_corners[7].w < threshold) variation_index |= 128;
+
+    const int[16] tris = triangulation[variation_index];
+    // int count = 0;
+    // while (tris[count] != -1) count++;
+    // uint base_index = atomicCounterAddARB(vert_count, count);
+    
+    for (int i = 0; tris[i] != -1; i+=3)
     {
-        for (int y = -1; y < res.y; y++)
-        {
-            for (int x = -1; x < res.x; x++)
-            {
-                Vec4f cube_corners[8] = {0};
-                cube_corners[0] = init_vec4f(x,   y,   z,   1);
-                cube_corners[1] = init_vec4f(x+1, y,   z,   1);
-                cube_corners[2] = init_vec4f(x+1, y,   z+1, 1);
-                cube_corners[3] = init_vec4f(x,   y,   z+1, 1);
-                cube_corners[4] = init_vec4f(x,   y+1, z,   1);
-                cube_corners[5] = init_vec4f(x+1, y+1, z,   1);
-                cube_corners[6] = init_vec4f(x+1, y+1, z+1, 1);
-                cube_corners[7] = init_vec4f(x,   y+1, z+1, 1);
-                
-                if (x != -1      && y != -1      && z != -1)
-                    cube_corners[0] = field[field_index(init_vec3f(x,   y,   z),   res)];
-                if (x != res.x-1 && y != -1      && z != -1)
-                    cube_corners[1] = field[field_index(init_vec3f(x+1, y,   z),   res)];
-                if (x != res.x-1 && y != -1      && z != res.z-1)
-                    cube_corners[2] = field[field_index(init_vec3f(x+1, y,   z+1), res)];
-                if (x != -1      && y != -1      && z != res.z-1)
-                    cube_corners[3] = field[field_index(init_vec3f(x,   y,   z+1), res)];
-                if (x != -1      && y != res.y-1 && z != -1)
-                    cube_corners[4] = field[field_index(init_vec3f(x,   y+1, z),   res)];
-                if (x != res.x-1 && y != res.y-1 && z != -1)
-                    cube_corners[5] = field[field_index(init_vec3f(x+1, y+1, z),   res)];
-                if (x != res.x-1 && y != res.y-1 && z != res.z-1)
-                    cube_corners[6] = field[field_index(init_vec3f(x+1, y+1, z+1), res)];
-                if (x != -1       && y != res.y-1 && z != res.z-1)
-                    cube_corners[7] = field[field_index(init_vec3f(x,   y+1, z+1), res)];
+        int a0 = edge_corner_A[tris[i]];
+        int b0 = edge_corner_B[tris[i]];
 
-                int variation_index = 0;
-                if (cube_corners[0].w < threshold) variation_index |= 1;
-                if (cube_corners[1].w < threshold) variation_index |= 2;
-                if (cube_corners[2].w < threshold) variation_index |= 4;
-                if (cube_corners[3].w < threshold) variation_index |= 8;
-                if (cube_corners[4].w < threshold) variation_index |= 16;
-                if (cube_corners[5].w < threshold) variation_index |= 32;
-                if (cube_corners[6].w < threshold) variation_index |= 64;
-                if (cube_corners[7].w < threshold) variation_index |= 128;
+        int a1 = edge_corner_A[tris[i+1]];
+        int b1 = edge_corner_B[tris[i+1]];
 
-                const int *tris = triangulation[variation_index];
-                for (int i = 0; tris[i] != -1; i+=3)
-                {
-                    int a0 = edge_corner_A[tris[i]];
-                    int b0 = edge_corner_B[tris[i]];
+        int a2 = edge_corner_A[tris[i+2]];
+        int b2 = edge_corner_B[tris[i+2]];
 
-                    int a1 = edge_corner_A[tris[i+1]];
-                    int b1 = edge_corner_B[tris[i+1]];
+        vec3 vert0 = interp_vert(cube_corners[a0], cube_corners[b0]);
+        vec3 vert1 = interp_vert(cube_corners[a1], cube_corners[b1]);
+        vec3 vert2 = interp_vert(cube_corners[a2], cube_corners[b2]);
 
-                    int a2 = edge_corner_A[tris[i+2]];
-                    int b2 = edge_corner_B[tris[i+2]];
+        vec3 edge0  = vert1 - vert0;
+        vec3 edge1  = vert2 - vert0;
+        vec3 normal = normalize(cross(edge0, edge1));
 
-                    /* Vec3f vert0 = interp_vert(cube_corners[a0], cube_corners[b0], threshold); */
-                    /* Vec3f vert1 = interp_vert(cube_corners[a1], cube_corners[b1], threshold); */
-                    /* Vec3f vert2 = interp_vert(cube_corners[a2], cube_corners[b2], threshold); */
-                    
-                    Vec3f vert0 = midpoint(cube_corners[a0], cube_corners[b0]);
-                    Vec3f vert1 = midpoint(cube_corners[a1], cube_corners[b1]);
-                    Vec3f vert2 = midpoint(cube_corners[a2], cube_corners[b2]);
+        memoryBarrier();
+        uint index = atomicCounterAddARB(vert_count, 3);
+        // vertices[index]   = vec3(index, 0, -1);
+        // vertices[index+1] = vec3(index, 1, -1);
+        // vertices[index+2] = vec3(index, 2, -1);
 
-                    Vec3f edge0  = vec3f_sub(vert1, vert0);
-                    Vec3f edge1  = vec3f_sub(vert2, vert0);
-                    Vec3f normal = vec3f_normalize(vec3f_cross(edge0, edge1));
+        vertices[index]   = homogenize(vert0);
+        vertices[index+1] = homogenize(vert1);
+        vertices[index+2] = homogenize(vert2);
 
-                    array_append(&m.vertices, homogenize(vert0, res));
-                    array_append(&m.vertices, homogenize(vert1, res));
-                    array_append(&m.vertices, homogenize(vert2, res));
+        // vertices[index]   = vert0;
+        // vertices[index+1] = vert1;
+        // vertices[index+2] = vert2;
 
-                    array_append(&m.normals, normal);
-                    array_append(&m.normals, normal);
-                    array_append(&m.normals, normal);
+        normals[index]   = normal;
+        normals[index+1] = normal;
+        normals[index+2] = normal;
 
-                    array_append(&m.uvs, init_vec2f(0, 0));
-                    array_append(&m.uvs, init_vec2f(0, 1));
-                    array_append(&m.uvs, init_vec2f(1, 0));
-                }
-            }
-        }
+        uvs[index]   = vec2(0, 0);
+        uvs[index+1] = vec2(0, 1);
+        uvs[index+2] = vec2(1, 0);
     }
 }

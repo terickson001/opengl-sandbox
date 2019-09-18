@@ -91,8 +91,11 @@ Vec4f *gen_noise_field(Vec3f res, Vec2f *limits)
     return field;
 }
 
-Model generate_terrain(Vec3f res, GLuint program)
+Model generate_terrain(Vec3f res, GLuint program, GLuint march_program)
 {
+    printf("Generating Gradients...\n");
+    printf("Done\n");
+    Vec3f *gradients = gen_gradients(res);
     printf("Producing Noise...\n");
 
     glUseProgram(program);
@@ -100,7 +103,6 @@ Model generate_terrain(Vec3f res, GLuint program)
     glUniform3i(res_uniform, (int)res.x, (int)res.y, (int)res.z);
     
     Vec4f *field = malloc(res.z*res.y*res.x*sizeof(Vec4f));
-    Vec3f *gradients = gen_gradients(res);
     
     GLuint field_buff, gradient_buff;
     glGenBuffers(1, &field_buff);
@@ -118,14 +120,86 @@ Model generate_terrain(Vec3f res, GLuint program)
     
     glDispatchCompute(res.x, res.y, res.z);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    field = glMapNamedBuffer(field_buff, GL_READ_ONLY);
+    printf("Done\n");
+
+    glUnmapNamedBuffer(gradient_buff);
+    //Vec4f *field_temp = glMapNamedBuffer(field_buff, GL_READ_ONLY);
+    //memcpy(field, field_temp, sizeof(Vec4f)*res.x*res.y*res.z);
+    glUseProgram(march_program);
+    
+    res_uniform = glGetUniformLocation(march_program, "res");
+    GLint threshold_uniform = glGetUniformLocation(march_program, "threshold");
+    glUniform3i(res_uniform, (int)res.x, (int)res.y, (int)res.z);
+    glUniform1f(threshold_uniform, -0.2);
+
+    GLuint counter = 0;
+    GLuint atomic_buff, vbuff, uvbuff, nbuff, tbuff;
+    glGenBuffers(1, &atomic_buff);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomic_buff);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &counter, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 4, atomic_buff);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, field_buff);
+    // glBufferData(GL_SHADER_STORAGE_BUFFER,  sizeof(Vec4f)*res.x*res.y*res.z, field, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, field_buff);
+
+    const int MAX_VERTICES = 16777216;
+    glGenBuffers(1, &vbuff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, vbuff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vec3f)*MAX_VERTICES, 0, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, vbuff);
+
+    glGenBuffers(1, &uvbuff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, uvbuff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vec2f)*MAX_VERTICES, 0, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, uvbuff);
+
+    glGenBuffers(1, &nbuff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nbuff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Vec3f)*MAX_VERTICES, 0, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, nbuff);
+    
+    glGenBuffers(1, &tbuff);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, tbuff);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLint)*256*16, triangulation, GL_DYNAMIC_READ);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, tbuff);
+
+    printf("Marching Cubes...\n");
+    glDispatchCompute(res.x+2, res.y+2, res.z+2);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     printf("Done\n");
     
-    printf("Marching Cubes...\n");
-    Model cube_mesh = cube_march_mesh(field, res, -0.1);
-    printf("Done\n");
+    printf("Building Mesh...\n");
+    GLuint *vert_counter = glMapNamedBuffer(atomic_buff, GL_READ_ONLY);
+    int vert_count = *vert_counter;
+    glUnmapNamedBuffer(atomic_buff);
+
+    printf("%% of Vertex storage used: %3.2f (%d/%d)\n", vert_count/(float)MAX_VERTICES*100, vert_count, MAX_VERTICES);
+    Model cube_mesh = {0};
+    make_array_reserve(&cube_mesh.vertices, vert_count);
+    make_array_reserve(&cube_mesh.normals,  vert_count);
+    make_array_reserve(&cube_mesh.uvs,      vert_count);
+    array_set_size(&cube_mesh.vertices, vert_count);
+    array_set_size(&cube_mesh.normals,  vert_count);
+    array_set_size(&cube_mesh.uvs,      vert_count);
+    Vec4f *v_temp  = glMapNamedBuffer(vbuff,  GL_READ_ONLY);
+    Vec4f *n_temp  = glMapNamedBuffer(nbuff,  GL_READ_ONLY);
+    Vec2f *uv_temp = glMapNamedBuffer(uvbuff, GL_READ_ONLY);
+    for (int i = 0; i < vert_count; i++)
+    {
+        cube_mesh.vertices[i] = conv_vec3f(v_temp[i].data, 4); 
+        cube_mesh.normals[i]  = conv_vec3f(n_temp[i].data, 4);
+        cube_mesh.uvs[i]      = uv_temp[i];
+        //printf("V%3d: {%.4f, %.4f, %.4f}\n", i, cube_mesh.vertices[i].x, cube_mesh.vertices[i].y, cube_mesh.vertices[i].z);
+    }
+
+    glUnmapNamedBuffer(vbuff);
+    glUnmapNamedBuffer(nbuff);
+    glUnmapNamedBuffer(uvbuff);
+    // Model cube_mesh = cube_march_mesh(field, res, -0.1);
     compute_tangent_basis(&cube_mesh);
     create_model_vbos(&cube_mesh);
+    printf("Done\n");
 
     return cube_mesh;
 }
@@ -136,16 +210,16 @@ int main(void)
     int height = 768;
     Window window = init_gl(width, height, "[$float$] Hello, World");
 
-    Vec3f field_res = init_vec3f(300, 50, 100);
+    Vec3f field_res = init_vec3f(50, 50, 50);
 
     GLuint noise_compute_id = load_compute_shader("./shader/perlin_noise.compute");
-    // GLuint march_compute_id = load_compute_shader("./shader/marching_cube.compute");
+    GLuint march_compute_id = load_compute_shader("./shader/marching_cube.compute");
 
-    Model cube_mesh = generate_terrain(field_res, noise_compute_id);
+    Model cube_mesh = generate_terrain(field_res, noise_compute_id, march_compute_id);
     
     Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
-    
+    map.scale = init_vec3f(10, 10, 10);
     // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -156,7 +230,7 @@ int main(void)
     // Shader shader = init_shaders("./shader/vertex.vs", "./shader/geometry.gs", "./shader/fragment.fs");
 
     // Create transformation matrices
-    Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
+    Mat4f projection_mat = mat4f_perspective(RAD(90.0f), (float)width/(float)height, 0.1f, 100.0f);
     Mat4f view_mat;
 
     // Initialize delta time
@@ -205,7 +279,7 @@ int main(void)
         glfwPollEvents();
 
         if (key_down(GLFW_KEY_R))
-            *map.model = generate_terrain(field_res, noise_compute_id);
+            *map.model = generate_terrain(field_res, noise_compute_id, march_compute_id);
         current_time = glfwGetTime();
         dt = (float)(current_time - last_time);
         last_time = current_time;

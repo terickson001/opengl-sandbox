@@ -337,21 +337,21 @@ void _compute_tangent_basis_unindexed(Model *m)
         );
         
         // bitangent = (delta_pos1*delta_uv0.u - delta_pos0*delta_uv1.u)*r
-        Vec3f bitangent = vec3f_scale(
-            vec3f_sub(
-                vec3f_scale(delta_pos1, delta_uv0.u),
-                vec3f_scale(delta_pos0, delta_uv1.u)
-            ),
-            r
-        );
+        /* Vec3f bitangent = vec3f_scale( */
+        /*     vec3f_sub( */
+        /*         vec3f_scale(delta_pos1, delta_uv0.u), */
+        /*         vec3f_scale(delta_pos0, delta_uv1.u) */
+        /*     ), */
+        /*     r */
+        /* ); */
 
         array_append(&m->tangents, tangent);
         array_append(&m->tangents, tangent);
         array_append(&m->tangents, tangent);
 
-        array_append(&m->bitangents, bitangent);
-        array_append(&m->bitangents, bitangent);
-        array_append(&m->bitangents, bitangent);
+        /* array_append(&m->bitangents, bitangent); */
+        /* array_append(&m->bitangents, bitangent); */
+        /* array_append(&m->bitangents, bitangent); */
     }
 }
 
@@ -364,19 +364,21 @@ void compute_tangent_basis(Model *m)
 
     for (int i = 0; i < array_size(m->vertices); i++)
     {
-        Vec3f *t = &m->tangents[i];
-        Vec3f *b = &m->bitangents[i];
         Vec3f *n = &m->normals[i];
+        Vec3f *t = &m->tangents[i];
+        
 
+        
         // t = normalize(t - n * dot(n, t));
         *t = vec3f_normalize(vec3f_sub(*t, vec3f_scale(*n, vec3f_dot(*n, *t))));
-
-        if (vec3f_dot(vec3f_cross(*n, *t), *b) < 0.0f)
-            *t = vec3f_scale(*t, -1);
+        array_append(&m->bitangents, vec3f_cross(*n, *t));
+        Vec3f *b = &m->bitangents[i];
+        /* if (vec3f_dot(vec3f_cross(*n, *t), *b) < 0.0f) */
+        /*     *t = vec3f_scale(*t, -1); */
     }
     
-    //array_shrink(&m->tangents);
-    //array_shrink(&m->bitangents);
+    array_shrink(&m->tangents);
+    array_shrink(&m->bitangents);
 }
 
 void create_model_vbos(Model *m)

@@ -12,6 +12,7 @@ typedef struct Entity
     Texture *tex;
     Vec3f pos;
     Vec3f dir;
+    Vec3f scale;
     float h_angle, v_angle;
 } Entity;
 

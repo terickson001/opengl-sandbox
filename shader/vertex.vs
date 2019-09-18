@@ -21,6 +21,8 @@ out VS_OUT {
 
     vec3 eye_direction_tbn;
     vec3 light_direction_tbn;
+    vec3 tangent;
+    vec3 bitangent;
 } vert;
 
 uniform mat4 MVP;
@@ -52,7 +54,9 @@ void main()
     vert.normal_mv    = MV3x3 * normalize(vertex_normal);
     vec3 tangent_mv   = MV3x3 * normalize(vertex_tangent);
     vec3 bitangent_mv = MV3x3 * normalize(vertex_bitangent);
-    
+
+    vert.tangent = vertex_tangent;
+    vert.bitangent = vertex_bitangent;
     mat3 TBN = transpose(mat3(
         tangent_mv,
         bitangent_mv,

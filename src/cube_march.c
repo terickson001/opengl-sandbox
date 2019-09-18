@@ -26,7 +26,7 @@ Vec3f interp_vert(Vec4f a, Vec4f b, float threshold)
 
 Vec3f homogenize(Vec3f p, Vec3f res)
 {
-    float largest_dim = vec3f_max(res);
+    float largest_dim = vec3f_max(res)+2;
     Vec3f result = vec3f_add_constant(vec3f_scale(p, 2/largest_dim), -1);
     return result;
 }
@@ -166,13 +166,9 @@ Model cube_march_mesh(Vec4f *field, Vec3f res, float threshold)
                     int a2 = edge_corner_A[tris[i+2]];
                     int b2 = edge_corner_B[tris[i+2]];
 
-                    /* Vec3f vert0 = interp_vert(cube_corners[a0], cube_corners[b0], threshold); */
-                    /* Vec3f vert1 = interp_vert(cube_corners[a1], cube_corners[b1], threshold); */
-                    /* Vec3f vert2 = interp_vert(cube_corners[a2], cube_corners[b2], threshold); */
-                    
-                    Vec3f vert0 = midpoint(cube_corners[a0], cube_corners[b0]);
-                    Vec3f vert1 = midpoint(cube_corners[a1], cube_corners[b1]);
-                    Vec3f vert2 = midpoint(cube_corners[a2], cube_corners[b2]);
+                    Vec3f vert0 = interp_vert(cube_corners[a0], cube_corners[b0], threshold);
+                    Vec3f vert1 = interp_vert(cube_corners[a1], cube_corners[b1], threshold);
+                    Vec3f vert2 = interp_vert(cube_corners[a2], cube_corners[b2], threshold);
 
                     Vec3f edge0  = vec3f_sub(vert1, vert0);
                     Vec3f edge1  = vec3f_sub(vert2, vert0);

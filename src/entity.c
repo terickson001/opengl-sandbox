@@ -11,6 +11,7 @@ Entity make_entity(Model *m, Texture *t, Vec3f pos, Vec3f dir)
     e.model = m;
     e.tex = t;
     e.pos = pos;
+    e.scale = make_vec3f();
     e.dir = vec3f_normalize(dir);
     get_direction_angles(dir, &e.h_angle, &e.v_angle);
     
@@ -19,6 +20,7 @@ Entity make_entity(Model *m, Texture *t, Vec3f pos, Vec3f dir)
 
 Mat4f entity_transform(Entity e)
 {
+    Mat4f scale = mat4f_scale(e.scale);
     Mat4f translate = mat4f_translate(init_mat4f(1), e.pos);
     Mat4f rotate;
     {
@@ -31,7 +33,8 @@ Mat4f entity_transform(Entity e)
     
         rotate = mat4f_rotate_to(e.pos, vec3f_add(e.pos, e.dir), up);
     }
-    return mat4f_mul(translate, rotate);
+    // return mat4f_mul(mat4f_mul(scale, rotate), translate);
+    return mat4f_mul(translate, mat4f_mul(rotate, scale));
 }
 
 void draw_entity(Shader s, Entity e)

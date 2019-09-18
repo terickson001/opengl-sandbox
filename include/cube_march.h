@@ -553,7 +553,14 @@ static const int edge_corner_B[12] = {
     6,
     7
 };
-
+// E 9 8 10
+//  C 1 5 (BBR -> BTR)
+//  C 0 4 (BBL -> BTL)
+//  C 2 6 (FBR -> FTR)
+// E 10 8 11
+//  C 2 6 (FBR -> FTR)
+//  C 0 4 (BBL -> BTL)
+//  C 3 7 (FBL -> FTL)
 float lerp(float a, float b, float w);
 
 Vec3f *gen_gradients(Vec3f res);

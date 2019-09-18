@@ -346,7 +346,6 @@
     Mat##S##T mat##S##T##_mul(Mat##S##T mat_a, Mat##S##T mat_b);        \
     Mat##S##T mat##S##T##_mul_elems(Mat##S##T mat_a, Mat##S##T mat_b);  \
     Mat##S##T mat##S##T##_div_elems(Mat##S##T mat_a, Mat##S##T mat_b);  \
-    Mat##S##T mat##S##T##_scale(Mat##S##T mat, type x);                 \
     Mat##S##T mat##S##T##_add_constant(Mat##S##T mat, type x);          \
     type mat##S##T##_min(Mat##S##T mat);                                \
     type mat##S##T##_max(Mat##S##T mat);                                \
@@ -498,14 +497,6 @@
         return res;                                                     \
     }                                                                   \
                                                                         \
-    Mat##S##T mat##S##T##_scale(Mat##S##T mat, type x)                  \
-    {                                                                   \
-        Mat##S##T res = make_mat##S##T();                               \
-        for (int i = 0; i < S*S; i++)                                   \
-            res.data[i] = mat.data[i] * x;                              \
-        return res;                                                     \
-    }                                                                   \
-                                                                        \
     Mat##S##T mat##S##T##_add_constant(Mat##S##T mat, type x)           \
     {                                                                   \
         Mat##S##T res = make_mat##S##T();                               \
@@ -583,6 +574,7 @@
 #define MATRIX4_SPEC_OPS_DEC(T, type)                                   \
     Mat4##T mat4##T##_translate(Mat4##T mat, Vec3##T dir);              \
     Mat4##T mat4##T##_rotate(Mat4##T mat, double angle, Vec3##T axis);  \
+    Mat4##T mat4##T##_scale(Vec3##T dims);                              \
     Mat4##T mat4##T##_rotate_to(Vec3##T eye, Vec3##T focus, Vec3##T up); \
     Mat4##T mat4##T##_look_at(Vec3##T eye, Vec3##T focus, Vec3##T up);  \
     Mat4##T mat4##T##_perspective(double vert_fov, double aspect, double z_near, double z_far); \
@@ -627,6 +619,17 @@
         Mat4##T rot = mat4##T##_mul(mod, mat);                          \
                                                                         \
         return rot;                                                     \
+    }                                                                   \
+                                                                        \
+    Mat4##T mat4##T##_scale(Vec3##T dims)                               \
+    {                                                                   \
+        Mat4##T res = make_mat4##T();                                   \
+        mat4##T##_set(&res, 0, 0, dims.x);                              \
+        mat4##T##_set(&res, 1, 1, dims.y);                              \
+        mat4##T##_set(&res, 2, 2, dims.z);                              \
+        mat4##T##_set(&res, 3, 3, 1);                                   \
+                                                                        \
+        return res;                                                     \
     }                                                                   \
                                                                         \
     Mat4##T mat4##T##_rotate_to(Vec3##T eye, Vec3##T focus, Vec3##T up) \
