@@ -57,7 +57,7 @@ Window init_gl(int w, int h, char *title)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glEnable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
 
     glEnable(GL_MULTISAMPLE);
 
@@ -130,7 +130,7 @@ Model generate_terrain(Vec3f res, GLuint program, GLuint march_program)
     res_uniform = glGetUniformLocation(march_program, "res");
     GLint threshold_uniform = glGetUniformLocation(march_program, "threshold");
     glUniform3i(res_uniform, (int)res.x, (int)res.y, (int)res.z);
-    glUniform1f(threshold_uniform, -0.2);
+    glUniform1f(threshold_uniform, -0.1);
 
     GLuint counter = 0;
     GLuint atomic_buff, vbuff, uvbuff, nbuff, tbuff;
@@ -165,7 +165,7 @@ Model generate_terrain(Vec3f res, GLuint program, GLuint march_program)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, tbuff);
 
     printf("Marching Cubes...\n");
-    glDispatchCompute(res.x+2, res.y+2, res.z+2);
+    glDispatchCompute(res.x+1, res.y+1, res.z+1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     printf("Done\n");
     
@@ -190,7 +190,7 @@ Model generate_terrain(Vec3f res, GLuint program, GLuint march_program)
         cube_mesh.vertices[i] = conv_vec3f(v_temp[i].data, 4); 
         cube_mesh.normals[i]  = conv_vec3f(n_temp[i].data, 4);
         cube_mesh.uvs[i]      = uv_temp[i];
-        //printf("V%3d: {%.4f, %.4f, %.4f}\n", i, cube_mesh.vertices[i].x, cube_mesh.vertices[i].y, cube_mesh.vertices[i].z);
+        // printf("V%3d: {%.4f, %.4f, %.4f}\n", i, cube_mesh.vertices[i].x, cube_mesh.vertices[i].y, cube_mesh.vertices[i].z);
     }
 
     glUnmapNamedBuffer(vbuff);
@@ -210,14 +210,14 @@ int main(void)
     int height = 768;
     Window window = init_gl(width, height, "[$float$] Hello, World");
 
-    Vec3f field_res = init_vec3f(50, 50, 50);
+    Vec3f field_res = init_vec3f(400, 100, 200);
 
     GLuint noise_compute_id = load_compute_shader("./shader/perlin_noise.compute");
     GLuint march_compute_id = load_compute_shader("./shader/marching_cube.compute");
 
     Model cube_mesh = generate_terrain(field_res, noise_compute_id, march_compute_id);
     
-    Texture brick_texture = load_texture("./res/brick.DDS", 0, 0);
+    Texture brick_texture = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Entity map = make_entity(&cube_mesh, &brick_texture, init_vec3f(0,0,0), init_vec3f(0,0,1));
     map.scale = init_vec3f(10, 10, 10);
     // Create VAO
@@ -239,13 +239,13 @@ int main(void)
     float dt = 0;
 
     // Initialize camera
-    Vec3f cam_pos = init_vec3f(4, 4, 4);
+    Vec3f cam_pos = init_vec3f(1, 1, 1);
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
 
     // Light settings
-    Vec3f light_pos = init_vec3f(5, 5, -5);
+    Vec3f light_pos = init_vec3f(10, 10, -10);
     Vec3f light_col = init_vec3f(1, 1, 1);
-    float light_pow = 50.0f;
+    float light_pow = 500.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
     Font font = init_font("./res/font_holstein.DDS");

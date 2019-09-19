@@ -27,7 +27,8 @@ uniform vec3 light_position_m;
 const float specularity = 1;
 void main()
 {
-    vec3 material_diffuse_color = (frag.normal/2)+0.5;//texture(diffuse_sampler, frag.uv).rgb;
+    // vec3 material_diffuse_color = (frag.normal/2)+0.5;
+    vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
     vec3 material_ambient_color = 0.3f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 
@@ -36,10 +37,6 @@ void main()
     vec3 n = normalize(texture(normal_sampler, vec2(frag.uv.x, frag.uv.y)).rgb*2.0 - 1.0);
     vec3 l = normalize(frag.light_direction_tbn);
     vec3 E = normalize(frag.eye_direction_tbn);
-
-    // vec3 n = normalize(frag.normal_mv);
-    // vec3 l = normalize(frag.light_direction_mv);
-    // vec3 E = normalize(frag.eye_direction_mv);
     
     vec3 R = reflect(-l, n);
     float cos_theta = clamp(dot(n, l), 0, 1);
