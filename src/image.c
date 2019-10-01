@@ -2,10 +2,9 @@
 
 #include <math.h>
 
-#include "lib.h"
 #include "lodepng.h"
 
-GLuint load_bmp(const char *filepath)
+GLuint load_bmp(const char *filepath, TextureInfo *info)
 {
     byte header[54];
     uint data_pos;
@@ -51,10 +50,18 @@ GLuint load_bmp(const char *filepath)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
 
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (info)
+    {
+        info->width = width;
+        info->height = height;
+    }
+    
     return texture_id;
 }
 
-GLuint load_tga(const char *filepath)
+GLuint load_tga(const char *filepath, TextureInfo *info)
 {
     byte header[18];
 
@@ -228,11 +235,18 @@ GLuint load_tga(const char *filepath)
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (info)
+    {
+        info->width = width;
+        info->height = height;
+    }
+    
     return texture_id;
 }
 
 // NOTE: V-coordinate of UVs must be inversed
-GLuint load_dds(const char *filepath)
+GLuint load_dds(const char *filepath, TextureInfo *info)
 {
     byte header[124];
     FILE *file;
@@ -260,7 +274,7 @@ GLuint load_dds(const char *filepath)
     uint linear_size  = *(uint *)&(header[0x10]);
     uint mipmap_count = *(uint *)&(header[0x18]);
     uint four_cc      = *(uint *)&(header[0x50]);
-
+    
     uint bufsize = mipmap_count > 1 ? linear_size * 2 : linear_size;
     byte *buf = malloc(bufsize);
     fread(buf, 1, bufsize, file);
@@ -318,11 +332,16 @@ GLuint load_dds(const char *filepath)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
+    if (info)
+    {
+        info->width = width;
+        info->height = height;
+    }
     return texture_id;
 }
 
-GLuint load_png(const char *filepath)
+GLuint load_png(const char *filepath, TextureInfo *info)
 {
     uint error;
     u8 *image = 0;
@@ -342,7 +361,7 @@ GLuint load_png(const char *filepath)
         fprintf(stderr, "load_png: ERROR %u: %s\n", error, lodepng_error_text(error));
         exit(1);
     }
-
+    
     printf("PNG LOADED: %s\n  width: %hd\n  height: %hd\n", filepath, width, height);
     uint pixel_depth = 4;
     
@@ -366,6 +385,12 @@ GLuint load_png(const char *filepath)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glGenerateMipmap(GL_TEXTURE_2D);
 
+    if (info)
+    {
+        info->width = width;
+        info->height = height;
+    }
+    
     return texture_id;
 }
 

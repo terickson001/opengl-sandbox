@@ -20,6 +20,8 @@
 #include "entity.h"
 #include "primitive.h"
 #include "keyboard.h"
+#include "sprite.h"
+#include "gui.h"
 
 Window init_gl(int w, int h, char *title)
 {
@@ -89,21 +91,28 @@ int main(void)
     create_model_vbos(&suzanne_m);
     
     // Load shaders
-    // Shader shader = init_shaders("./shader/vertex.vs", "./shader/geometry.gs", "./shader/fragment.fs");
     Shader shader = init_shaders("./shader/vertex.vs", 0, "./shader/fragment.fs");
 
     // Load texture
     Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
-    // Texture suzanne_t = load_texture("./res/normal_default.png", 0, 0);
-    // Texture grass     = load_texture("./res/grass64.png", 0, 0);
+
+    Texture blue = color_texture(init_vec3f(0, 1, 0));
+
+    Sprite sprite = load_sprite("./res/adventurer.sprite");
+    sprite_set_anim(&sprite, "idle");
     
     Entity column        = make_entity(&model,     &brick,     init_vec3f(0, 1, 0), init_vec3f(0, 0, -1));
-    Entity suzanne       = make_entity(&suzanne_m, &suzanne_t, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
+    Entity suzanne       = make_entity(&suzanne_m, &blue, init_vec3f(0, 0, 0), init_vec3f(0, 0, -1));
     Entity suzanne_2     = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
-    /* Entity grass_block   = make_entity(&cube,      &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
-    /* Entity grass_pyramid = make_entity(&pyramid,   &grass,     init_vec3f(0, 0, 0), init_vec3f( 1, 0,  0)); */
-    /* Entity grass_diamond = make_entity(&diamond,   &grass,     init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1)); */
+
+    Entity_2D adventurer = make_entity_2d(&sprite, init_vec2f(512-160, 384-160), init_vec2f(10,10));
+    
+    Sprite button_sprite = load_sprite("./res/button.sprite");
+    sprite_set_anim(&button_sprite, "normal");
+    Gui_Element box = gui_box(&button_sprite, init_vec2f(0, 0), init_vec2f(270, 50));
+    box.anchor.vertical = GUI_TOP;
+    box.anchor.horizontal = GUI_LEFT;
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -151,15 +160,14 @@ int main(void)
         draw_entity(shader, column);
         draw_entity(shader, suzanne);
         draw_entity(shader, suzanne_2);
-        // draw_entity(shader, grass_block);
-        // draw_entity(shader, grass_pyramid);
-        // draw_entity(shader, grass_diamond);
 
-        print_text(font, fps_str, width-270, height-185, 15);
+        // draw_entity_2d(font.shader, adventurer);
+        draw_gui(font.shader, window, &box);
+        print_text(font, fps_str, width-45, height-15, 15);
         
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
-
+        
         current_time = glfwGetTime();
         dt = (float)(current_time - last_time);
         last_time = current_time;

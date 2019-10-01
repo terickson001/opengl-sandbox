@@ -1,25 +1,23 @@
 #include "text.h"
 
-#include "image.h"
 #include "glmath2.h"
 #include "lib.h"
-#include "shaders.h"
 
 Font init_font(const char *filepath)
 {
     Font font;
     // Initialize texture
-    font.texture = load_dds(filepath);
+    font.texture = load_dds(filepath, &font.map_info);
 
     // Initialize VBO
     glGenBuffers(1, &font.vbuff);
     glGenBuffers(1, &font.uvbuff);
 
     // Initialize shader
-    font.shader = load_shaders("./shader/text.vs", 0, "./shader/text.fs");
+    font.shader = init_shaders("./shader/text.vs", 0, "./shader/text.fs");
 
     // Initialize uniform IDs
-    font.uniform = glGetUniformLocation(font.shader, "texture_sampler");
+    font.uniform = glGetUniformLocation(font.shader.id, "texture_sampler");
 
     return font;
 }
@@ -77,8 +75,9 @@ void print_text(Font font, const char *text, int x, int y, int size)
     glBufferData(GL_ARRAY_BUFFER, array_size(uvs)*sizeof(Vec2f), uvs, GL_STATIC_DRAW);
 
     // Enable the text shader
-    glUseProgram(font.shader);
+    glUseProgram(font.shader.id);
 
+    glUniform2i(font.shader.uniforms.resolution, 1024, 768);
     // Bind the texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture);
@@ -121,5 +120,5 @@ void destroy_font(Font font)
 
     glDeleteTextures(1, &font.texture);
 
-    glDeleteProgram(font.shader);
+    glDeleteProgram(font.shader.id);
 }

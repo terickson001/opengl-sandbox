@@ -12,14 +12,10 @@ typedef enum KeyState
     KeyState_UP
 } KeyState;
 
-typedef struct Keyboard
-{
-    KeyState keys[312];
-} Keyboard;
-
 void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, int mods);
 KeyState get_keystate(int k);
 b32 key_down(int k);
+b32 key_pressed(int k);
+b32 key_released(int k);
 
-static Keyboard KEYBOARD = {0};
 #endif // _KEYBOARD_H

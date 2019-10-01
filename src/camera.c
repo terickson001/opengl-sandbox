@@ -18,8 +18,9 @@ Camera make_camera(Vec3f pos, Vec3f dir, float move_speed, float rotate_speed)
     cam.dir = vec3f_normalize(dir);
     cam.up = init_vec3f(0, 1, 0);
 
-    get_direction_angles(cam.dir, &cam.h_angle, &cam.v_angle);
-    
+    get_direction_angles(cam.dir, &cam.yaw, &cam.pitch);
+    cam.yaw = M_PI;
+    cam.pitch = 0;
     cam.move_speed = move_speed;
     cam.rotate_speed = rotate_speed;
 
@@ -44,26 +45,37 @@ void update_camera_angle(Window win, Camera *cam, float dt)
     glfwGetCursorPos(win.handle, &xpos, &ypos);
     glfwSetCursorPos(win.handle, win.width/2, win.height/2);
 
-    cam->h_angle += cam->rotate_speed * dt * (float)(win.width /2 - xpos);
-    cam->v_angle += cam->rotate_speed * dt * (float)(win.height/2 - ypos);
+    cam->yaw   += cam->rotate_speed * dt * (float)(win.width /2 - xpos);
+    cam->pitch += cam->rotate_speed * dt * (float)(win.height/2 - ypos);
 
-    if (ABS(cam->h_angle) > 2*M_PI)
-        cam->h_angle -= SIGNUM(cam->h_angle)*(2*M_PI);
-    cam->v_angle = MIN(MAX(cam->v_angle, -(M_PI/2)), M_PI/2);
+    while (cam->yaw < 0) cam->yaw += 2*M_PI;
+    while (cam->yaw >= 2*M_PI) cam->yaw -= 2*M_PI;
+    cam->pitch = MIN(MAX(cam->pitch, -(M_PI/2)), M_PI/2);
     
     cam->dir = init_vec3f(
-        cos(cam->v_angle) * sin(cam->h_angle),
-        sin(cam->v_angle),
-        cos(cam->v_angle) * cos(cam->h_angle)
+        cos(cam->pitch) * sin(cam->yaw),
+        sin(cam->pitch),
+        cos(cam->pitch) * cos(cam->yaw)
     );
 
     cam->right = init_vec3f(
-        sin(cam->h_angle - M_PI/2),
+        -cos(cam->yaw),
         0,
-        cos(cam->h_angle - M_PI/2)
+        sin(cam->yaw)
     );
 
     cam->up = vec3f_cross(cam->right, cam->dir);
+
+    /* printf("CAMERA:\n"); */
+    /* printf("  dir: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
+    /*        cam->dir.x, cam->dir.y, cam->dir.z, */
+    /*        DEG(cam->yaw), DEG(cam->pitch)); */
+    /* printf("  up: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
+    /*        cam->up.x, cam->up.y, cam->up.z, */
+    /*        DEG(cam->yaw), DEG(cam->pitch)); */
+    /* printf("  right: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
+    /*        cam->right.x, cam->right.y, cam->right.z, */
+    /*        DEG(cam->yaw-M_PI/2), 0.0f); */
 }
 
 void update_camera_position(Window win, Camera *cam, float dt)
@@ -95,6 +107,9 @@ void update_camera_position(Window win, Camera *cam, float dt)
         cam->pos = vec3f_add(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
     if (key_down(GLFW_KEY_LEFT_SHIFT))
         cam->pos = vec3f_sub(cam->pos, init_vec3f(0, dt*cam->move_speed, 0));
+
+    /* printf("  pos: [%.2f, %.2f, %.2f]\n", */
+    /*        cam->pos.x, cam->pos.y, cam->pos.z); */
 }
 
 void update_camera(Window win, Camera *cam, float dt)

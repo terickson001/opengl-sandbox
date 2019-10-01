@@ -19,6 +19,8 @@ typedef struct Shader
     {
         struct
         {
+            GLint resolution;
+            
             GLint model_matrix;
             GLint view_matrix;
             GLint projection_matrix;

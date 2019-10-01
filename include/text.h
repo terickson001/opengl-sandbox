@@ -4,11 +4,15 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+#include "shaders.h"
+#include "image.h"
+
 typedef struct Font
 {
     GLuint texture;
+    TextureInfo map_info;
     GLuint vbuff, uvbuff;
-    GLuint shader;
+    Shader shader;
     GLuint uniform;
 } Font;
 

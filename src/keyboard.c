@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <GLFW/glfw3.h>
 
+typedef struct Keyboard
+{
+    KeyState keys[312];
+} Keyboard;
+static Keyboard KEYBOARD = {0};
+
 void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, int mods)
 {
     int code = keycode - 32;
@@ -38,6 +44,33 @@ KeyState get_keystate(int k)
 
 b32 key_down(int k)
 {
+    KeyState state = get_keystate(k);
+    if (state == KeyState_PRESSED || state == KeyState_DOWN)
+        return true;
+    
     int code = k-32;
-    return KEYBOARD.keys[code] == KeyState_PRESSED || KEYBOARD.keys[code] == KeyState_DOWN;
+    KEYBOARD.keys[code] = state;
+    return false;
+}
+
+b32 key_pressed(int k)
+{
+    KeyState state = get_keystate(k);
+    if (state == KeyState_PRESSED)
+        return true;
+    
+    int code = k-32;
+    KEYBOARD.keys[code] = state;
+    return false;
+}
+
+b32 key_released(int k)
+{
+    KeyState state = get_keystate(k);
+    if (state == KeyState_RELEASED)
+        return true;
+    
+    int code = k-32;
+    KEYBOARD.keys[code] = state;
+    return false;
 }

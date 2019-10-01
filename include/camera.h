@@ -7,7 +7,7 @@
 typedef struct Camera
 {
     Vec3f pos, dir, up, right;
-    float v_angle, h_angle;
+    float pitch, yaw;
     float move_speed, rotate_speed;
     bool detach, detach_key_down;
 } Camera;

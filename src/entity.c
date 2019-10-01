@@ -47,3 +47,18 @@ void draw_entity(Shader s, Entity e)
     draw_model(s, *e.model);
     disable_texture(s, *e.tex);
 }
+
+Entity_2D make_entity_2d(Sprite *s, Vec2f pos, Vec2f scale)
+{
+    Entity_2D e = {0};
+
+    e.sprite = s;
+    e.pos = pos;
+    e.scale = scale;
+    
+    return e;
+}
+void draw_entity_2d(Shader s, Entity_2D e)
+{
+    draw_sprite(s, e.sprite, e.pos, e.scale);
+}

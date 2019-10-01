@@ -4,9 +4,16 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-GLuint load_bmp(const char *filepath);
-GLuint load_tga(const char *filepath);
-GLuint load_dds(const char *filepath);
-GLuint load_png(const char *filepath);
+#include "lib.h"
+
+typedef struct TextureInfo
+{
+    u32 width, height;
+} TextureInfo;
+    
+GLuint load_bmp(const char *filepath, TextureInfo *info);
+GLuint load_tga(const char *filepath, TextureInfo *info);
+GLuint load_dds(const char *filepath, TextureInfo *info);
+GLuint load_png(const char *filepath, TextureInfo *info);
 
 #endif // _IMAGE_H
