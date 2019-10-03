@@ -106,17 +106,19 @@ void gui_draw_border(Gui_Context *ctx, Gui_Rect rect, u64 id)
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
 {
-    Vec4f color = ctx->style.colors[color_id];
     if (color_id == GUI_COLOR_BUTTON)
     {
-        if      (id == ctx->focus) color = ctx->style.colors[color_id+2];
-        else if (id == ctx->hover) color = ctx->style.colors[color_id+1];
+        if      (id == ctx->focus) color_id += 2;
+        else if (id == ctx->hover) color_id += 1;
     }
+    Vec4f color = ctx->style.colors[color_id];
+
     Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_RECT);
     draw->focus = id == ctx->focus;
     draw->hover = id == ctx->hover;
     draw->rect.rect = rect;
     draw->rect.color = color;
+    draw->rect.color_id = color_id;
     
     if (opt & GUI_OPT_BORDER)
         gui_draw_border(ctx, rect, id);

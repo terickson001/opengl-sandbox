@@ -26,13 +26,14 @@ GLuint load_image(const char *filepath, TextureInfo *info)
     return 0;
 }
 
-Texture color_texture(Vec4f color)
+Texture color_texture(Vec4f color, b32 normalize)
 {
     Texture t = {0};
     glGenTextures(1, &t.diffuse);
     glBindTexture(GL_TEXTURE_2D, t.diffuse);
 
-    u8 c[4] = {color.b*255, color.g*255, color.b*255, color.a*255};
+    int scale = normalize ? 255 : 1;
+    u8 c[4] = {color.r*scale, color.g*scale, color.b*scale, color.a*scale};
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, c);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -44,9 +45,57 @@ Texture color_texture(Vec4f color)
     
     t.normal = load_png("./res/normal_default.png", 0);
     t.specular = load_png("./res/specular_default.png", 0);
+
+    t.info.width = t.info.height = 1;
+
+    return t;
+}
+
+Texture texture_pallete(Vec4f *colors, int n, b32 normalize)
+{
+    Texture t = {0};
+    glGenTextures(1, &t.diffuse);
+    glBindTexture(GL_TEXTURE_2D, t.diffuse);
+
+    int size = 1;
+    while (n > size*size) size *= 2;
+    u8 *data = calloc(size*size*4, 1);
+
+    int scale = normalize ? 255 : 1;
+    for (int i = 0; i < n; i++)
+    {
+        vec4f_pprint(colors[i], "COLORS");
+        data[i*4+0] = scale * colors[i].r;
+        data[i*4+1] = scale * colors[i].g;
+        data[i*4+2] = scale * colors[i].b;
+        data[i*4+3] = scale * colors[i].a;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    t.normal = load_png("./res/normal_default.png", 0);
+    t.specular = load_png("./res/specular_default.png", 0);
+
+    t.info.width = t.info.height = size;
     
     return t;
 }
+
+Vec2f texture_pallete_index(Texture pallete, int i)
+{
+    int s = pallete.info.width;
+    Vec2f coord = init_vec2f(i%s, (i/s));
+    Vec2f uv = vec2f_scale(coord, 1/(float)s);
+    return uv;
+}
+
 Texture load_texture(const char *diff_path, const char *norm_path, const char *spec_path)
 {
     Texture t = {0};

@@ -61,6 +61,7 @@ typedef struct Gui_Draw_Rect
 {
     Gui_Rect rect;
     Vec4f color;
+    Gui_Color color_id;
 } Gui_Draw_Rect;
 
 typedef struct Gui_Draw_Text
@@ -68,6 +69,7 @@ typedef struct Gui_Draw_Text
     Vec2f pos;
     f32 size;
     Vec4f color;
+    Gui_Color color_id;
     char *text;
 } Gui_Draw_Text;
 
@@ -76,6 +78,7 @@ typedef struct Gui_Draw_Icon
     Gui_Rect rect;
     i32 id; // How should I identifiy icons?
     i32 color;
+    Gui_Color color_id;
 } Gui_Draw_Icon;
 
 typedef struct Gui_Draw

@@ -71,7 +71,8 @@ Window init_gl(int w, int h, char *title)
 }
 
 static GLuint gui_vbuff, gui_uvbuff; // Just to quickly test
-void draw_rect(i32 x, i32 y, i32 w, i32 h, Vec4f color)
+static Texture gui_pallete;
+void draw_rect(i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
 {
     y = 768 - y - h;
     
@@ -85,24 +86,29 @@ void draw_rect(i32 x, i32 y, i32 w, i32 h, Vec4f color)
     vertices[4] = init_vec2f(x+w, y);
     vertices[5] = init_vec2f(x+w, y+h);
 
-    uvs[0] = init_vec2f(0, 0);
-    uvs[1] = init_vec2f(1, 1);
-    uvs[2] = init_vec2f(0, 1);
+    Vec2f c_uv = texture_pallete_index(gui_pallete, color_id);
+    f32 uv_size = 1/(f32)gui_pallete.info.width;
+    uvs[0] = c_uv;
+    uvs[1] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
+    uvs[2] = init_vec2f(c_uv.u,           c_uv.v + uv_size);
 
-    uvs[3] = init_vec2f(0, 0);
-    uvs[4] = init_vec2f(1, 0);
-    uvs[5] = init_vec2f(1, 1);
+    uvs[3] = c_uv;
+    uvs[4] = init_vec2f(c_uv.u + uv_size, c_uv.v);
+    uvs[5] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
 
-    Texture tex = color_texture(vec4f_scale(color, 1/255.0f));
+    /* uvs[0] = init_vec2f(0, 0); */
+    /* uvs[1] = init_vec2f(1, 1); */
+    /* uvs[2] = init_vec2f(0, 1); */
+
+    /* uvs[3] = init_vec2f(0, 0); */
+    /* uvs[4] = init_vec2f(1, 0); */
+    /* uvs[5] = init_vec2f(1, 1); */
     
     glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
     glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, gui_uvbuff);
     glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), uvs, GL_STATIC_DRAW);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex.diffuse);
     
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
@@ -123,6 +129,7 @@ void draw_rect(i32 x, i32 y, i32 w, i32 h, Vec4f color)
     glDisableVertexAttribArray(1);
 }
 
+
 void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
@@ -136,8 +143,8 @@ void draw_gui(Gui_Context *ctx, Shader s)
 {
     glUseProgram(s.id);
     
-    /* glActiveTexture(GL_TEXTURE0); */
-    /* glBindTexture(GL_TEXTURE_2D, s->map.diffuse); */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gui_pallete.diffuse);
     
     glUniform2i(s.uniforms.resolution, 1024, 768);
     glUniform1i(s.uniforms.diffuse_tex, 0);
@@ -147,7 +154,7 @@ void draw_gui(Gui_Context *ctx, Shader s)
     {
         switch (draw.kind)
         {
-        case GUI_DRAW_RECT: draw_rect(draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color); break;
+        case GUI_DRAW_RECT: draw_rect(draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color_id); break;
         default: break;
         }
     }
@@ -167,10 +174,9 @@ int main(void)
     // Load OBJs
     Model model = make_model("./res/cylinder.obj", true, true);
     Model suzanne_m = make_model("./res/suzanne.obj", true, true);
-    Model cube = get_prim_cube();
-    Model pyramid = get_prim_pyramid();
-    Model diamond = get_prim_diamond();
-    //invert_uvs(&cube);
+    /* Model cube = get_prim_cube(); */
+    /* Model pyramid = get_prim_pyramid(); */
+    /* Model diamond = get_prim_diamond(); */
     
     create_model_vbos(&model);
     create_model_vbos(&suzanne_m);
@@ -182,7 +188,7 @@ int main(void)
     Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
 
-    Texture blue = color_texture(init_vec4f(0, 1, 0, 0.5));
+    Texture blue = color_texture(init_vec4f(0, 1, 0, 0.5), true);
 
     Sprite sprite = load_sprite("./res/adventurer.sprite");
     sprite_set_anim(&sprite, "idle");
@@ -196,6 +202,7 @@ int main(void)
     Gui_Context gui_context = gui_init();
     glGenBuffers(1, &gui_vbuff);
     glGenBuffers(1, &gui_uvbuff);
+    gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);

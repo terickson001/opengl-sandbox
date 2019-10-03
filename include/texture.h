@@ -25,6 +25,8 @@ Texture load_texture(const char *diff_path, const char *norm_path, const char *s
 void activate_texture(Shader s, Texture t);
 void disable_texture(Shader s, Texture t);
 void destroy_texture(Texture t);
-Texture color_texture(Vec4f color);
+Texture color_texture(Vec4f color, b32 normalize);
+Texture texture_pallete(Vec4f *colors, int n, b32 normalize);
+Vec2f texture_pallete_index(Texture pallete, int i);
 
 #endif // _TEXTURE_H
