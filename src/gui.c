@@ -1,5 +1,4 @@
 #include "gui.h"
-#include "keyboard.h"
 
 u64 gui_id(const void *data, isize size)
 {
@@ -11,6 +10,32 @@ Gui_Context gui_init()
     Gui_Context ctx = {0};
     ctx.style = GUI_DEFAULT_STYLE;
     return ctx;
+}
+
+void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos)
+{
+    memcpy(ctx->mouse, buttons, sizeof(buttons[0])*3);
+    ctx->cursor = pos;
+}
+
+b32 gui_mouse_down(Gui_Context *ctx, i32 b)
+{
+    return ctx->mouse[b] == KeyState_PRESSED || ctx->mouse[b] == KeyState_DOWN;
+}
+
+b32 gui_mouse_pressed(Gui_Context *ctx, i32 b)
+{
+    return ctx->mouse[b] == KeyState_PRESSED;
+}
+
+b32 gui_mouse_up(Gui_Context *ctx, i32 b)
+{
+    return ctx->mouse[b] == KeyState_RELEASED || ctx->mouse[b] == KeyState_UP;
+}
+
+b32 gui_mouse_released(Gui_Context *ctx, i32 b)
+{
+    return ctx->mouse[b] == KeyState_RELEASED;
 }
 
 void gui_begin(Gui_Context *ctx, Window win)
@@ -28,7 +53,7 @@ void gui_begin(Gui_Context *ctx, Window win)
 
 void gui_end(Gui_Context *ctx)
 {
-
+    
 }
 
 void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
@@ -36,6 +61,7 @@ void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
     ctx->layout.size.y = height;
     ctx->layout.items = items;
     memcpy(ctx->layout.widths, widths, items*sizeof(widths[0]));
+    ctx->layout.curr_item = 0;
 }
 
 Gui_Rect gui_layout_rect(Gui_Context *ctx)
@@ -81,9 +107,29 @@ b32 gui_focus(Gui_Context *ctx, char *label, int icon)
 
 b32 gui_mouse_over(Gui_Context *ctx, Gui_Rect rect)
 {
-    Vec2f m = mouse_pos();
+    Vec2f m = ctx->cursor;
     return (rect.x <= m.x && m.x <= rect.x+rect.w &&
             rect.y <= m.y && m.y <= rect.y+rect.h);
+}
+
+void gui_update_focus(Gui_Context *ctx, Gui_Rect rect, u64 id, i32 opt)
+{
+    b32 mouse_over = gui_mouse_over(ctx, rect);
+
+    if (mouse_over && !mouse_down(0)) ctx->hover = id;
+
+    if (ctx->focus == id)
+    {
+        if (gui_mouse_pressed(ctx, 0) && !mouse_over) ctx->focus = 0;
+        if (!gui_mouse_down(ctx, 0) && ~opt & GUI_OPT_HOLD_FOCUS) ctx->focus = 0;
+    }
+
+    if (ctx->hover == id)
+    {
+        if (!mouse_over) ctx->hover = 0;
+        else if (gui_mouse_pressed(ctx, 0)) ctx->focus = id;
+    }
+    
 }
 
 Gui_Draw *gui_add_draw(Gui_Context *ctx, Gui_Draw_Kind kind)
@@ -98,10 +144,10 @@ void gui_draw_border(Gui_Context *ctx, Gui_Rect rect, u64 id)
 {
     i32 bs = ctx->style.border_size;
     Gui_Color c = GUI_COLOR_BORDER;
-    gui_draw_rect(ctx, (Gui_Rect){rect.x-bs,        rect.y-bs,        bs, rect.h+(2*bs)}, id, c, 0); // Left
-    gui_draw_rect(ctx, (Gui_Rect){rect.x+rect.w+bs, rect.y-bs,        bs, rect.h+(2*bs)}, id, c, 0); // Right
-    gui_draw_rect(ctx, (Gui_Rect){rect.x,           rect.y-bs,        rect.w, bs}, id, c, 0); // Top
-    gui_draw_rect(ctx, (Gui_Rect){rect.x,           rect.y+rect.h+bs, rect.w, bs}, id, c, 0); // Bottom
+    gui_draw_rect(ctx, (Gui_Rect){rect.x,           rect.y,           bs, rect.h}, id, c, 0); // Left
+    gui_draw_rect(ctx, (Gui_Rect){rect.x+rect.w-bs, rect.y,           bs, rect.h}, id, c, 0); // Right
+    gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y-bs,        rect.w-(2*bs), bs}, id, c, 0); // Top
+    gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y+rect.h-bs, rect.w-(2*bs), bs}, id, c, 0); // Bottom
 }
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
@@ -124,10 +170,11 @@ void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, 
 
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
 {
-    if (ctx->draw_index >= array_size(ctx->draws))
+    if (!array_size(ctx->draws))
         return false;
     
-    *ret = ctx->draws[ctx->draw_index++];
+    *ret = ctx->draws[array_size(ctx->draws)-1];
+    array_set_size(&ctx->draws, array_size(ctx->draws)-1);
     return true;
 }
 
@@ -139,22 +186,11 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
 
     b32 res = false;
     Gui_Rect rect = gui_layout_rect(ctx);
+
+    gui_update_focus(ctx, rect, id, 0);
     
-    if (gui_mouse_over(ctx, rect))
-        ctx->hover = id;
-    else if (ctx->hover == id)
-        ctx->hover = 0;
-    
-    if (id == ctx->focus)
-    {
-        if (mouse_released(0) && id == ctx->hover)
+    if (id == ctx->focus && mouse_released(0) && id == ctx->hover)
             res = true;
-    }
-    else if (id == ctx->hover)
-    {
-        if (mouse_pressed(0))
-            ctx->focus = id;
-    }
 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BUTTON, GUI_OPT_BORDER);
     

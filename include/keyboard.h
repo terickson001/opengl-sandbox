@@ -20,6 +20,7 @@ b32 key_down(int k);
 b32 key_pressed(int k);
 b32 key_released(int k);
 
+
 void update_mousepos(GLFWwindow *window, double x, double y);
 void update_mousestate(GLFWwindow *window, int button, int action, int mods);
 KeyState get_mousestate(int m);
