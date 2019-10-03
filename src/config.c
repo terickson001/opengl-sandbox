@@ -28,8 +28,6 @@ b32 parse_float(char **str, f64 *ret)
     
     i64 integer = 0;
     b32 ok = parse_int(&curr, &integer);
-    printf("INT PARSED FOR FLOAT: %ld\n", integer);
-
     if (!ok) return false;
 
     *ret = (f64)integer;

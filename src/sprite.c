@@ -88,11 +88,6 @@ Sprite load_sprite(const char *filepath)
             skip_space(&file, true);
             i++;
         }
-        printf("%s: ADDING ANIMATION '%s'\n", filepath, anim_name);
-        printf("REPEAT?: %s\n", anim.repeat?"True":"False");
-        printf("LENGTH: %d\n", anim.length);
-        for (int i = 0; i < 4; i++)
-            printf("%d (%f, %f) %f x %f\n", anim.keys[i].active_frame, anim.keys[i].uv.x, anim.keys[i].uv.y, anim.keys[i].dim.x, anim.keys[i].dim.y);
         sprite_add_anim(&s, anim_name, anim);
     }
 

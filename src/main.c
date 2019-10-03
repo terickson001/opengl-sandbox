@@ -63,9 +63,94 @@ Window init_gl(int w, int h, char *title)
     glEnable(GL_MULTISAMPLE);
 
     glfwSetKeyCallback(window.handle, update_keystate);
+    glfwSetMouseButtonCallback(window.handle, update_mousestate);
+    glfwSetCursorPosCallback(window.handle, update_mousepos);
     glfwSetInputMode(window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     
     return window;
+}
+
+static GLuint gui_vbuff, gui_uvbuff; // Just to quickly test
+void draw_rect(i32 x, i32 y, i32 w, i32 h, Vec4f color)
+{
+    y = 768 - y - h;
+    
+    Vec2f vertices[6], uvs[6];
+
+    vertices[0] = init_vec2f(x,   y);
+    vertices[1] = init_vec2f(x+w, y+h);
+    vertices[2] = init_vec2f(x,   y+h);
+
+    vertices[3] = init_vec2f(x,   y);
+    vertices[4] = init_vec2f(x+w, y);
+    vertices[5] = init_vec2f(x+w, y+h);
+
+    uvs[0] = init_vec2f(0, 0);
+    uvs[1] = init_vec2f(1, 1);
+    uvs[2] = init_vec2f(0, 1);
+
+    uvs[3] = init_vec2f(0, 0);
+    uvs[4] = init_vec2f(1, 0);
+    uvs[5] = init_vec2f(1, 1);
+
+    Texture tex = color_texture(vec4f_scale(color, 1/255.0f));
+    
+    glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
+    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, gui_uvbuff);
+    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), uvs, GL_STATIC_DRAW);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex.diffuse);
+    
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, gui_uvbuff);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDisable(GL_BLEND);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+}
+
+void do_gui(Gui_Context *ctx, Window win)
+{
+    gui_begin(ctx, win);
+    gui_row(ctx, 1, (i32[]){0}, 15);
+    if (gui_button(ctx, "Button 1", 0, 0))
+        printf("Button 1 Pressed\n");
+    gui_end(ctx);
+}
+
+void draw_gui(Gui_Context *ctx, Shader s)
+{
+    glUseProgram(s.id);
+    
+    /* glActiveTexture(GL_TEXTURE0); */
+    /* glBindTexture(GL_TEXTURE_2D, s->map.diffuse); */
+    
+    glUniform2i(s.uniforms.resolution, 1024, 768);
+    glUniform1i(s.uniforms.diffuse_tex, 0);
+    
+    Gui_Draw draw;
+    while (gui_next_draw(ctx, &draw))
+    {
+        switch (draw.kind)
+        {
+        case GUI_DRAW_RECT: draw_rect(draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color); break;
+        default: break;
+        }
+    }
 }
 
 int main(void)
@@ -97,7 +182,7 @@ int main(void)
     Texture brick     = load_texture("./res/brick.DDS", "./res/brick_normal.bmp", "./res/brick_specular.DDS");
     Texture suzanne_t = load_texture("./res/suzanne.DDS", 0, 0);
 
-    Texture blue = color_texture(init_vec3f(0, 1, 0));
+    Texture blue = color_texture(init_vec4f(0, 1, 0, 0.5));
 
     Sprite sprite = load_sprite("./res/adventurer.sprite");
     sprite_set_anim(&sprite, "idle");
@@ -107,12 +192,10 @@ int main(void)
     Entity suzanne_2     = make_entity(&suzanne_m, &suzanne_t, init_vec3f(5, 0, 0), init_vec3f(-1, 0, -1));
 
     Entity_2D adventurer = make_entity_2d(&sprite, init_vec2f(512-160, 384-160), init_vec2f(10,10));
-    
-    Sprite button_sprite = load_sprite("./res/button.sprite");
-    sprite_set_anim(&button_sprite, "normal");
-    Gui_Element box = gui_box(&button_sprite, init_vec2f(0, 0), init_vec2f(270, 50));
-    box.anchor.vertical = GUI_TOP;
-    box.anchor.horizontal = GUI_LEFT;
+
+    Gui_Context gui_context = gui_init();
+    glGenBuffers(1, &gui_vbuff);
+    glGenBuffers(1, &gui_uvbuff);
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -161,8 +244,9 @@ int main(void)
         draw_entity(shader, suzanne);
         draw_entity(shader, suzanne_2);
 
-        // draw_entity_2d(font.shader, adventurer);
-        draw_gui(font.shader, window, &box);
+        do_gui(&gui_context, window);
+        draw_gui(&gui_context, font.shader);
+        draw_entity_2d(font.shader, adventurer);
         print_text(font, fps_str, width-45, height-15, 15);
         
         glfwSwapBuffers(window.handle);

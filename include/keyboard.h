@@ -3,6 +3,8 @@
 
 #include "window.h"
 #include "lib.h"
+#include "glmath2.h"
+
 typedef enum KeyState
 {
     KeyState_NONE = 0,
@@ -17,5 +19,14 @@ KeyState get_keystate(int k);
 b32 key_down(int k);
 b32 key_pressed(int k);
 b32 key_released(int k);
+
+void update_mousepos(GLFWwindow *window, double x, double y);
+void update_mousestate(GLFWwindow *window, int button, int action, int mods);
+KeyState get_mousestate(int m);
+b32 mouse_down(int m);
+b32 mouse_pressed(int m);
+b32 mouse_released(int m);
+Vec2f mouse_pos();
+void mouse_set_pos(Vec2f pos);
 
 #endif // _KEYBOARD_H

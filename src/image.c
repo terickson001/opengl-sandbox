@@ -362,7 +362,7 @@ GLuint load_png(const char *filepath, TextureInfo *info)
         exit(1);
     }
     
-    printf("PNG LOADED: %s\n  width: %hd\n  height: %hd\n", filepath, width, height);
+    // printf("PNG LOADED: %s\n  width: %hd\n  height: %hd\n", filepath, width, height);
     uint pixel_depth = 4;
     
     // Flip image

@@ -26,14 +26,14 @@ GLuint load_image(const char *filepath, TextureInfo *info)
     return 0;
 }
 
-Texture color_texture(Vec3f color)
+Texture color_texture(Vec4f color)
 {
     Texture t = {0};
     glGenTextures(1, &t.diffuse);
     glBindTexture(GL_TEXTURE_2D, t.diffuse);
 
-    u8 c[3] = {color.x*255, color.y*255, color.z*255};
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, c);
+    u8 c[4] = {color.b*255, color.g*255, color.b*255, color.a*255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, c);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
