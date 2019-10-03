@@ -96,14 +96,6 @@ void draw_rect(i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
     uvs[4] = init_vec2f(c_uv.u + uv_size, c_uv.v);
     uvs[5] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
 
-    /* uvs[0] = init_vec2f(0, 0); */
-    /* uvs[1] = init_vec2f(1, 1); */
-    /* uvs[2] = init_vec2f(0, 1); */
-
-    /* uvs[3] = init_vec2f(0, 0); */
-    /* uvs[4] = init_vec2f(1, 0); */
-    /* uvs[5] = init_vec2f(1, 1); */
-    
     glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
     glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
 
