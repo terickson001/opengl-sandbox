@@ -133,9 +133,21 @@ void draw_rect(i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
 void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
-    gui_row(ctx, 1, (i32[]){0}, 15);
+    KeyState mbuttons[3] = {get_mousestate(0), get_mousestate(1), get_mousestate(2)};
+    gui_input_mouse(ctx, mbuttons, mouse_pos());
+    gui_row(ctx, 3, (i32[]){70, -70, 0}, 15);
     if (gui_button(ctx, "Button 1", 0, 0))
         printf("Button 1 Pressed\n");
+    if (gui_button(ctx, "Button 2", 0, 0))
+        printf("Button 2 Pressed\n");
+    if (gui_button(ctx, "Button 3", 0, 0))
+        printf("Button 3 Pressed\n");
+    if (gui_button(ctx, "Button 4", 0, 0))
+        printf("Button 4 Pressed\n");
+    if (gui_button(ctx, "Button 5", 0, 0))
+        printf("Button 5 Pressed\n");
+    if (gui_button(ctx, "Button 36", 0, 0))
+        printf("Button 6 Pressed\n");
     gui_end(ctx);
 }
 
@@ -253,7 +265,7 @@ int main(void)
 
         do_gui(&gui_context, window);
         draw_gui(&gui_context, font.shader);
-        draw_entity_2d(font.shader, adventurer);
+        // draw_entity_2d(font.shader, adventurer);
         print_text(font, fps_str, width-45, height-15, 15);
         
         glfwSwapBuffers(window.handle);

@@ -4,6 +4,7 @@
 #include "glmath2.h"
 #include "lib.h"
 #include "window.h"
+#include "keyboard.h"
 
 #define MAX_ROW_ITEMS 16
 
@@ -12,6 +13,7 @@ typedef enum Gui_Opt
     GUI_OPT_BORDER = 0x1,
     GUI_OPT_CENTER = 0x2,
     GUI_OPT_RIGHT  = 0x4,
+    GUI_OPT_HOLD_FOCUS = 0x8,
 } Gui_Opt;
 
 typedef enum Gui_Color
@@ -111,11 +113,13 @@ typedef struct Gui_Context
     Gui_Style style;
     Array(Gui_Draw) draws;
     i32 draw_index;
+    Vec2f cursor;
+    KeyState mouse[3];
 } Gui_Context;
 
 
-
 Gui_Context gui_init();
+void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos);
 void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 
