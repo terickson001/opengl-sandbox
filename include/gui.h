@@ -31,6 +31,8 @@ typedef enum Gui_Color
 
 typedef struct Gui_Style
 {
+    void *font;
+    int text_height;
     Vec2f size; // Default element size
     i32 border_size;
     i32 padding;
@@ -40,7 +42,9 @@ typedef struct Gui_Style
 
 #pragma GCC diagnostic ignored "-Wmissing-braces"
 static const Gui_Style GUI_DEFAULT_STYLE = {
-    {70, 15},
+    0,
+    15,
+    {70, 25},
     1,
     2,
     15,
@@ -96,6 +100,7 @@ typedef struct Gui_Draw_Icon
 typedef struct Gui_Draw
 {
     Gui_Draw_Kind kind;
+    i32 layer;
     b32 focus;
     b32 hover;
     union
@@ -119,12 +124,17 @@ typedef struct Gui_Context
 {
     u64 hover;
     u64 focus;
+    i32 layer;
+    
     Gui_Layout layout;
     Gui_Style style;
+    
     Array(Gui_Draw) draws;
-    i32 draw_index;
+    
     Vec2f cursor;
     KeyState mouse[3];
+
+    float (*get_text_width)(void *font, char const *text, int size);
 } Gui_Context;
 
 

@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 in vec3 uv;
 
@@ -23,7 +23,5 @@ void main()
     float w = fwidth(sig_dist);
     float opacity = smoothstep(0.5 -w, 0.5 + w, sig_dist);
 
-    // color = vec4(texel, 1);
     color = vec4(1, 1, 1, opacity);
-    // color = vec4(1, 1, 1, texture(diffuse_sampler, uv).r);
 }

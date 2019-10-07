@@ -2,10 +2,6 @@
 #define _LIB_IMPLEMENTATION
 #include "lib.h"
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
-#undef STB_TRUETYPE_IMPLEMENTATION
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -27,8 +23,8 @@
 #include "sprite.h"
 #include "gui.h"
 #include "renderer.h"
-
 Window init_gl(int w, int h, char *title)
+
 {
     if (!glfwInit())
     {
@@ -75,20 +71,26 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
+float gui_get_text_width(void *font, char const *text, int size)
+{
+    return get_text_width(*(Font *)font, text, size);
+}
+
 static Texture gui_pallete;
-void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
+void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color color_id)
 {
     y = 768 - y - h; // invert the y-coordinate
     
-    Vec2f vertices[6], uvs[6];
+    Vec3f vertices[6];
+    Vec2f uvs[6];
 
-    vertices[0] = init_vec2f(x,   y);
-    vertices[1] = init_vec2f(x+w, y+h);
-    vertices[2] = init_vec2f(x,   y+h);
+    vertices[0] = init_vec3f(x,   y,   layer);
+    vertices[1] = init_vec3f(x+w, y+h, layer);
+    vertices[2] = init_vec3f(x,   y+h, layer);
 
-    vertices[3] = init_vec2f(x,   y);
-    vertices[4] = init_vec2f(x+w, y);
-    vertices[5] = init_vec2f(x+w, y+h);
+    vertices[3] = init_vec3f(x,   y,   layer);
+    vertices[4] = init_vec3f(x+w, y,   layer);
+    vertices[5] = init_vec3f(x+w, y+h, layer);
 
     Vec2f c_uv = texture_pallete_index(gui_pallete, color_id);
     f32 uv_size = 1/(f32)gui_pallete.info.width;
@@ -122,7 +124,7 @@ void do_gui(Gui_Context *ctx, Window win)
         printf("Button 4 Pressed\n");
     if (gui_slider(ctx, "Slider 1", &value, 0, 100, 1, 0))
         printf("Slider updated to %.2f\n", value);
-    if (gui_button(ctx, "Button 36", 0, 0))
+    if (gui_button(ctx, "Button 6", 0, 0))
         printf("Button 6 Pressed\n");
     gui_end(ctx);
 }
@@ -142,8 +144,18 @@ void draw_gui(Gui_Context *ctx, Renderer_2D *r)
     {
         switch (draw.kind)
         {
-        case GUI_DRAW_RECT: draw_rect(r, draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color_id); break;
-        case GUI_DRAW_TEXT: 
+        case GUI_DRAW_RECT:
+            renderer2d_pause(r);
+            draw_rect(r,
+                      draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h,
+                      -draw.layer, draw.rect.color_id);
+            renderer2d_resume(r);
+            break;
+        case GUI_DRAW_TEXT:
+            print_text(*(Font *)ctx->style.font, draw.text.text,
+                       draw.text.pos.x, 768-draw.text.pos.y-draw.text.size,
+                       draw.text.size, -draw.layer);
+            break;
         default: break;
         }
     }
@@ -188,6 +200,7 @@ int main(void)
     Entity_2D adventurer = make_entity_2d(&sprite, init_vec2f(512-160, 384-160), init_vec2f(10,10));
 
     Gui_Context gui_context = gui_init();
+    gui_context.get_text_width = &gui_get_text_width;
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
     
@@ -212,8 +225,8 @@ int main(void)
     float light_pow = 50.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
-    // Font font = load_ttf("./res/font/OpenSans-Regular.ttf");
     Font font = load_font("./res/font/OpenSans-Regular");
+    gui_context.style.font = &font;
     int nb_frames = 0;
     float accum_time = 0.0;
     char fps_str[256] = "0";
@@ -240,10 +253,10 @@ int main(void)
         draw_entity(shader, suzanne_2);
 
         do_gui(&gui_context, window);
-        // draw_gui(&gui_context, &r2d);
+        draw_gui(&gui_context, &r2d);
         // draw_entity_2d(font.shader, adventurer);
         float fps_w = get_text_width(font, fps_str, 24);
-        print_text(font, fps_str, width-fps_w, height-24, 24);
+        print_text(font, fps_str, width-fps_w, height-24, 24, -3);
         
         glfwSwapBuffers(window.handle);
         glfwPollEvents();

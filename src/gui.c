@@ -43,7 +43,6 @@ void gui_begin(Gui_Context *ctx, Window win)
     if (ctx->draws)
         array_free(ctx->draws);
     array_init(&ctx->draws);
-    ctx->draw_index = 0;
     ctx->layout.pos = init_vec2f(0, 0);
     ctx->layout.size.x = win.width;
     ctx->layout.items = 1;
@@ -53,7 +52,7 @@ void gui_begin(Gui_Context *ctx, Window win)
 
 void gui_end(Gui_Context *ctx)
 {
-    
+    // What should be done here?
 }
 
 void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
@@ -158,9 +157,23 @@ void gui_draw_border(Gui_Context *ctx, Gui_Rect rect, u64 id)
     gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y+rect.h-bs, rect.w-(2*bs), bs}, id, c, 0); // Bottom
 }
 
-void gui_draw_text(Gui_Context *ctx, const char *str, Gui_Rect rect, Gui_Color color_id, i32 opt)
+void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_id, i32 opt)
 {
     Vec2f pos = {0};
+
+    float height = ctx->style.text_height;
+    float width = ctx->get_text_width(ctx->style.font, str, ctx->style.text_height);
+
+    pos.x = rect.x + (rect.w - width)/2;
+    pos.y = rect.y + (rect.h - height)/2;
+    
+    Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_TEXT);
+    draw->layer = ctx->layer;
+    draw->text.text = str;
+    draw->text.pos = pos;
+    draw->text.size = height;
+    draw->text.color_id = color_id;
+    draw->text.color = ctx->style.colors[color_id];
 }
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
@@ -172,15 +185,23 @@ void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, 
     }
     Vec4f color = ctx->style.colors[color_id];
 
+    i32 base_layer = ctx->layer;
+    
     Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_RECT);
     draw->focus = id == ctx->focus;
     draw->hover = id == ctx->hover;
+    draw->layer = ctx->layer;
     draw->rect.rect = rect;
     draw->rect.color = color;
     draw->rect.color_id = color_id;
     
-    if (opt & GUI_OPT_BORDER)
-        gui_draw_border(ctx, rect, id);
+    ctx->layer = base_layer+1;
+    {
+        if (opt & GUI_OPT_BORDER)
+            gui_draw_border(ctx, rect, id);
+    }
+    ctx->layer = base_layer;
+    
 }
 
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
@@ -223,7 +244,6 @@ b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 
     u64 id = gui_id(label, strlen(label));
 
     f32 prev = *value;
-    // value = clamp((mouse.x-rect.x-(thumb.w/2))/(rect.w-thumb.w), 0, 1)
     Gui_Rect rect = gui_layout_rect(ctx);
     gui_update_focus(ctx, rect, id, opt);
 
@@ -241,12 +261,21 @@ b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 
     b32 res = false;
     if (*value != prev) res = true; // Value changed
 
+    i32 base_layer = ctx->layer;
     // Draw slider
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
+    
     // Draw thumb
-    f32 percentage = (*value - min)/(max-min);
-    Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
-    gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
-
+    {   ctx->layer = base_layer+1;
+        f32 percentage = (*value - min)/(max-min);
+        Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
+        gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
+    }
+    // Draw value
+    ctx->layer = base_layer+2;
+    {
+        gui_draw_text(ctx, "VALUE", rect, GUI_COLOR_TEXT, 0);
+    }
+    ctx->layer = base_layer;
     return res;
 }

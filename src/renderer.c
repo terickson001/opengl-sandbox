@@ -54,6 +54,16 @@ void renderer2d_begin(Renderer_2D *r)
     glUseProgram(r->shader.id);
 }
 
+void renderer2d_pause(Renderer_2D *r)
+{
+    glUseProgram(0);
+}
+
+void renderer2d_resume(Renderer_2D *r)
+{
+    glUseProgram(r->shader.id);
+}
+
 void renderer3d_draw(Renderer_3D *r)
 {
     // TODO
@@ -62,14 +72,14 @@ void renderer3d_draw(Renderer_3D *r)
 void renderer2d_draw(Renderer_2D *r)
 {
     glBindBuffer(GL_ARRAY_BUFFER, r->vbuff);
-    glBufferData(GL_ARRAY_BUFFER, array_size(r->vertices)*sizeof(Vec2f), r->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, array_size(r->vertices)*sizeof(Vec3f), r->vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, r->uvbuff);
     glBufferData(GL_ARRAY_BUFFER, array_size(r->uvs)*sizeof(Vec2f), r->uvs, GL_STATIC_DRAW);
     
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbuff);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, r->uvbuff);

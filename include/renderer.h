@@ -26,7 +26,7 @@ typedef struct Renderer_2D
 {
     Shader shader;
 
-    Array(Vec2f) vertices;
+    Array(Vec3f) vertices;
     Array(Vec2f) uvs;
 
     GLuint vbuff, uvbuff;
@@ -40,5 +40,9 @@ void renderer2d_begin(Renderer_2D *r);
 
 void renderer3d_draw(Renderer_3D *r);
 void renderer2d_draw(Renderer_2D *r);
+
+void renderer2d_pause(Renderer_2D *r);
+
+void renderer2d_resume(Renderer_2D *r);
 
 #endif
