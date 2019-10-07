@@ -2,15 +2,16 @@
 
 #include "util.h"
 
-char *load_file(const char *file_path)
+char *load_file(const char *file_path, i64 *size)
 {
     FILE *file = fopen(file_path, "rb");
 
+    i64 length = 0;
     char *buffer = 0;
     if (file)
     {
         fseek(file, 0, SEEK_END);
-        long length = ftell(file);
+        length = ftell(file);
         fseek(file, 0, SEEK_SET);
         buffer = malloc(length+1);
         if (!buffer)
@@ -19,7 +20,12 @@ char *load_file(const char *file_path)
         buffer[length] = 0;
         fclose(file);
     }
+    else
+    {
+        fprintf(stderr, "Could not open file \"%s\"\n", file_path);
+    }
 
+    if (size) *size = length;
     return buffer;
 }
 

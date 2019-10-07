@@ -4,11 +4,19 @@ main
 !.gitignore
 
 !Makefile
+    
 !include
 !include/**
+    
 !src
 !src/**
+    
 !res
 !res/**
+res/font/*_msdf
+
 !shader
 !shader/**
+
+!build_font.sh
+

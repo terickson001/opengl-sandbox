@@ -10,15 +10,18 @@
 
 typedef enum Gui_Opt
 {
-    GUI_OPT_BORDER = 0x1,
-    GUI_OPT_CENTER = 0x2,
-    GUI_OPT_RIGHT  = 0x4,
+    GUI_OPT_BORDER     = 0x1,
+    GUI_OPT_CENTER     = 0x2,
+    GUI_OPT_RIGHT      = 0x4,
     GUI_OPT_HOLD_FOCUS = 0x8,
 } Gui_Opt;
 
 typedef enum Gui_Color
 {
-    GUI_COLOR_BUTTON = 0,
+    GUI_COLOR_BASE = 0,
+    GUI_COLOR_BASE_HOVER,
+    GUI_COLOR_BASE_FOCUS,
+    GUI_COLOR_BUTTON,
     GUI_COLOR_BUTTON_HOVER,
     GUI_COLOR_BUTTON_FOCUS,
     GUI_COLOR_BORDER,
@@ -30,6 +33,8 @@ typedef struct Gui_Style
 {
     Vec2f size; // Default element size
     i32 border_size;
+    i32 padding;
+    i32 thumb_size;
     Vec4f colors[GUI_COLOR_COUNT];
 } Gui_Style;
 
@@ -37,7 +42,12 @@ typedef struct Gui_Style
 static const Gui_Style GUI_DEFAULT_STYLE = {
     {70, 15},
     1,
+    2,
+    15,
     {
+        {30,  30,  30,  255}, // BASE
+        {35,  35,  35,  255}, // BASE_HOVER
+        {40,  40,  40,  255}, // BASE_FOCUS
         {75,  75,  75,  255}, // BUTTON
         {95,  95,  95,  255}, // BUTTON_HOVER
         {115, 115, 115, 255}, // BUTTON_FOCUS
@@ -124,11 +134,11 @@ void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 
 b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt);
+b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 step, i32 opt);
 
 // Util
 b32 gui_hover(Gui_Context *ctx, char *label, int icon);
 b32 gui_active(Gui_Context *ctx, char *label, int icon);
-b32 gui_button_rect(Gui_Context *ctx, char *label, int icon, int opt);
 
 // Draw
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color, i32 opt);

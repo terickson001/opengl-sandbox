@@ -6,17 +6,36 @@
 
 #include "shaders.h"
 #include "image.h"
+#include "stb_truetype.h"
+
+typedef struct Glyph_Metrics
+{
+    f32 x0, y0, x1, y1;
+    f32 advance;
+} Glyph_Metrics;
+
+typedef struct Field_Info
+{
+    char name[64];
+    int glyph_count;
+    int size;
+    float ascent, descent;
+    
+    Glyph_Metrics metrics[96];
+} Field_Info;
 
 typedef struct Font
 {
-    GLuint texture;
-    TextureInfo map_info;
     GLuint vbuff, uvbuff;
     Shader shader;
     GLuint uniform;
-} Font;
+    GLuint texture;
 
-Font init_font(const char *filepath);
+    Field_Info info;
+} Font;
+    
+Font load_font(const char *directory);
+float get_text_width(Font font, const char *text, int size);
 void print_text(Font font, const char *text, int x, int y, int size);
 void destroy_font(Font font);
 

@@ -2,6 +2,10 @@
 #define _LIB_IMPLEMENTATION
 #include "lib.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+#undef STB_TRUETYPE_IMPLEMENTATION
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -22,6 +26,7 @@
 #include "keyboard.h"
 #include "sprite.h"
 #include "gui.h"
+#include "renderer.h"
 
 Window init_gl(int w, int h, char *title)
 {
@@ -32,7 +37,7 @@ Window init_gl(int w, int h, char *title)
     }
 
     glfwWindowHint(GLFW_SAMPLES, 16); // 16x antialiasing
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // OpenGL v.3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL v.3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -70,11 +75,10 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
-static GLuint gui_vbuff, gui_uvbuff; // Just to quickly test
 static Texture gui_pallete;
-void draw_rect(i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
+void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
 {
-    y = 768 - y - h;
+    y = 768 - y - h; // invert the y-coordinate
     
     Vec2f vertices[6], uvs[6];
 
@@ -96,38 +100,18 @@ void draw_rect(i32 x, i32 y, i32 w, i32 h, Gui_Color color_id)
     uvs[4] = init_vec2f(c_uv.u + uv_size, c_uv.v);
     uvs[5] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
 
-    glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
-    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, gui_uvbuff);
-    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(Vec2f), uvs, GL_STATIC_DRAW);
-    
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, gui_vbuff);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, gui_uvbuff);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glDisable(GL_BLEND);
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+    array_appendv(&r->vertices, vertices, 6);
+    array_appendv(&r->uvs,      uvs,      6);
 }
 
 
+static f32 value = 50;
 void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
     KeyState mbuttons[3] = {get_mousestate(0), get_mousestate(1), get_mousestate(2)};
     gui_input_mouse(ctx, mbuttons, mouse_pos());
-    gui_row(ctx, 3, (i32[]){70, -70, 0}, 15);
+    gui_row(ctx, 3, (i32[]){70, -70, 0}, 35);
     if (gui_button(ctx, "Button 1", 0, 0))
         printf("Button 1 Pressed\n");
     if (gui_button(ctx, "Button 2", 0, 0))
@@ -136,32 +120,35 @@ void do_gui(Gui_Context *ctx, Window win)
         printf("Button 3 Pressed\n");
     if (gui_button(ctx, "Button 4", 0, 0))
         printf("Button 4 Pressed\n");
-    if (gui_button(ctx, "Button 5", 0, 0))
-        printf("Button 5 Pressed\n");
+    if (gui_slider(ctx, "Slider 1", &value, 0, 100, 1, 0))
+        printf("Slider updated to %.2f\n", value);
     if (gui_button(ctx, "Button 36", 0, 0))
         printf("Button 6 Pressed\n");
     gui_end(ctx);
 }
 
-void draw_gui(Gui_Context *ctx, Shader s)
+void draw_gui(Gui_Context *ctx, Renderer_2D *r)
 {
-    glUseProgram(s.id);
+    renderer2d_begin(r);
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gui_pallete.diffuse);
     
-    glUniform2i(s.uniforms.resolution, 1024, 768);
-    glUniform1i(s.uniforms.diffuse_tex, 0);
+    glUniform2i(r->shader.uniforms.resolution, 1024, 768);
+    glUniform1i(r->shader.uniforms.diffuse_tex, 0);
     
     Gui_Draw draw;
     while (gui_next_draw(ctx, &draw))
     {
         switch (draw.kind)
         {
-        case GUI_DRAW_RECT: draw_rect(draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color_id); break;
+        case GUI_DRAW_RECT: draw_rect(r, draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h, draw.rect.color_id); break;
+        case GUI_DRAW_TEXT: 
         default: break;
         }
     }
+
+    renderer2d_draw(r);
 }
 
 int main(void)
@@ -178,9 +165,6 @@ int main(void)
     // Load OBJs
     Model model = make_model("./res/cylinder.obj", true, true);
     Model suzanne_m = make_model("./res/suzanne.obj", true, true);
-    /* Model cube = get_prim_cube(); */
-    /* Model pyramid = get_prim_pyramid(); */
-    /* Model diamond = get_prim_diamond(); */
     
     create_model_vbos(&model);
     create_model_vbos(&suzanne_m);
@@ -204,9 +188,8 @@ int main(void)
     Entity_2D adventurer = make_entity_2d(&sprite, init_vec2f(512-160, 384-160), init_vec2f(10,10));
 
     Gui_Context gui_context = gui_init();
-    glGenBuffers(1, &gui_vbuff);
-    glGenBuffers(1, &gui_uvbuff);
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
+    Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -229,7 +212,8 @@ int main(void)
     float light_pow = 50.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
-    Font font = init_font("./res/font_holstein.DDS");
+    // Font font = load_ttf("./res/font/OpenSans-Regular.ttf");
+    Font font = load_font("./res/font/OpenSans-Regular");
     int nb_frames = 0;
     float accum_time = 0.0;
     char fps_str[256] = "0";
@@ -256,9 +240,10 @@ int main(void)
         draw_entity(shader, suzanne_2);
 
         do_gui(&gui_context, window);
-        draw_gui(&gui_context, font.shader);
+        // draw_gui(&gui_context, &r2d);
         // draw_entity_2d(font.shader, adventurer);
-        print_text(font, fps_str, width-45, height-15, 15);
+        float fps_w = get_text_width(font, fps_str, 24);
+        print_text(font, fps_str, width-fps_w, height-24, 24);
         
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
@@ -286,7 +271,7 @@ int main(void)
     // Cleanup
     destroy_model(&model);
     destroy_texture(brick);
-    destroy_font(font);
+    // destroy_font(font);
 
     glDeleteProgram(shader.id);
 

@@ -4,20 +4,35 @@
 b32 parse_int(char **str, i64 *ret)
 {
     if (!*str) return false;
-    
-    *ret = 0;
 
+    *ret = 0;
+    i8 sign = 1;
     char *curr = *str;
+    if (*curr == '-')
+    {
+        curr++;
+        sign = -1;
+    }
+
     while ('0' <= *curr && *curr <= '9')
     {
         *ret *= 10;
         *ret += *(curr++) - '0';
     }
 
+    *ret *= sign;
     if (curr == *str)
         return false;
     *str = curr;
     return true;
+}
+
+b32 parse_i32(char **str, i32 *ret)
+{
+    i64 i;
+    b32 ok = parse_int(str, &i);
+    *ret = (i32)i;
+    return ok;
 }
 
 b32 parse_float(char **str, f64 *ret)
@@ -29,7 +44,9 @@ b32 parse_float(char **str, f64 *ret)
     i64 integer = 0;
     b32 ok = parse_int(&curr, &integer);
     if (!ok) return false;
-
+    
+    i8 sign = integer < 0 ? -1 : 1;
+    
     *ret = (f64)integer;
     
     if (curr[0] == '.')
@@ -43,7 +60,7 @@ b32 parse_float(char **str, f64 *ret)
             frac += (*(curr++) - '0')/div;
             div *= 10;
         }
-        *ret += frac;
+        *ret += frac * sign;
     }
 
     *str = curr;

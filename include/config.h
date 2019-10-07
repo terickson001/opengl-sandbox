@@ -4,6 +4,7 @@
 #include "lib.h"
 
 b32 parse_int(char **str, i64 *ret);
+b32 parse_i32(char **str, i32 *ret);
 
 b32 parse_float(char **str, f64 *ret);
 b32 parse_f32(char **str, f32 *ret);

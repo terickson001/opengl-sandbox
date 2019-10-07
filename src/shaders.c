@@ -1,13 +1,10 @@
+#include "shaders.h"
+
 #include <stdlib.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include "shaders.h"
 
 #include "util.h"
 
@@ -22,17 +19,17 @@ GLuint load_shaders(const char *vertex_file_path, const char *geom_file_path, co
 
     // Read the vertex shader code from the file
     char *vs_code, *fs_code, *gs_code;
-    if (!(vs_code = load_file(vertex_file_path)))
+    if (!(vs_code = load_file(vertex_file_path, 0)))
     {
         fprintf(stderr, "Failed to open vertex shader '%s'\n", vertex_file_path);
         return 0;
     }
-    if (!(fs_code = load_file(fragment_file_path)))
+    if (!(fs_code = load_file(fragment_file_path, 0)))
     {
         fprintf(stderr, "Failed to open fragment shader '%s'\n", fragment_file_path);
         return 0;
     }
-    if (geom_file_path && !(gs_code = load_file(geom_file_path)))
+    if (geom_file_path && !(gs_code = load_file(geom_file_path, 0)))
     {
         fprintf(stderr, "Failed to open geometry shader '%s'\n", geom_file_path);
         return 0;

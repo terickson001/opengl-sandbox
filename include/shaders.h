@@ -1,7 +1,10 @@
 #ifndef _SHADERS_H
 #define _SHADERS_H
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <GL/gl.h>
+
 #include <time.h>
 
 #include "lib.h"

@@ -64,7 +64,6 @@ Texture texture_pallete(Vec4f *colors, int n, b32 normalize)
     int scale = normalize ? 255 : 1;
     for (int i = 0; i < n; i++)
     {
-        vec4f_pprint(colors[i], "COLORS");
         data[i*4+0] = scale * colors[i].r;
         data[i*4+1] = scale * colors[i].g;
         data[i*4+2] = scale * colors[i].b;

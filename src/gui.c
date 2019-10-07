@@ -74,9 +74,17 @@ Gui_Rect gui_layout_rect(Gui_Context *ctx)
     rect.w = ctx->layout.widths[ctx->layout.curr_item];
     rect.h = ctx->layout.size.y;
 
+    // Position relative to right for negative values
     if (rect.w <= 0) rect.w += ctx->layout.size.x - rect.x;
 
+    // Advance layout position
     ctx->layout.pos.x += rect.w;
+
+    // Adjust for padding
+    rect.x += ctx->style.padding;
+    rect.y += ctx->style.padding;
+    rect.w -= ctx->style.padding * 2;
+    rect.h -= ctx->style.padding * 2;
     
     ctx->layout.curr_item++;
     if (ctx->layout.curr_item == ctx->layout.items)
@@ -146,13 +154,18 @@ void gui_draw_border(Gui_Context *ctx, Gui_Rect rect, u64 id)
     Gui_Color c = GUI_COLOR_BORDER;
     gui_draw_rect(ctx, (Gui_Rect){rect.x,           rect.y,           bs, rect.h}, id, c, 0); // Left
     gui_draw_rect(ctx, (Gui_Rect){rect.x+rect.w-bs, rect.y,           bs, rect.h}, id, c, 0); // Right
-    gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y-bs,        rect.w-(2*bs), bs}, id, c, 0); // Top
+    gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y,           rect.w-(2*bs), bs}, id, c, 0); // Top
     gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y+rect.h-bs, rect.w-(2*bs), bs}, id, c, 0); // Bottom
+}
+
+void gui_draw_text(Gui_Context *ctx, const char *str, Gui_Rect rect, Gui_Color color_id, i32 opt)
+{
+    Vec2f pos = {0};
 }
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
 {
-    if (color_id == GUI_COLOR_BUTTON)
+    if (color_id == GUI_COLOR_BUTTON || color_id == GUI_COLOR_BASE)
     {
         if      (id == ctx->focus) color_id += 2;
         else if (id == ctx->hover) color_id += 1;
@@ -180,6 +193,11 @@ b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
     return true;
 }
 
+void gui_label(Gui_Context *ctx, char *str, i32 opt)
+{
+    gui_draw_text(ctx, str, gui_layout_rect(ctx), GUI_COLOR_TEXT, opt);
+}
+
 b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
 {
     u64 id = label
@@ -189,12 +207,46 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
     b32 res = false;
     Gui_Rect rect = gui_layout_rect(ctx);
 
+    b32 was_focus = ctx->focus == id;
     gui_update_focus(ctx, rect, id, 0);
     
-    if (id == ctx->focus && mouse_released(0) && id == ctx->hover)
+    if (was_focus && gui_mouse_released(ctx, 0) && id == ctx->hover)
             res = true;
 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BUTTON, GUI_OPT_BORDER);
     
+    return res;
+}
+
+b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 step, i32 opt)
+{
+    u64 id = gui_id(label, strlen(label));
+
+    f32 prev = *value;
+    // value = clamp((mouse.x-rect.x-(thumb.w/2))/(rect.w-thumb.w), 0, 1)
+    Gui_Rect rect = gui_layout_rect(ctx);
+    gui_update_focus(ctx, rect, id, opt);
+
+    i32 tw = ctx->style.thumb_size;
+    if (ctx->focus == id && gui_mouse_down(ctx, 0))
+    {
+        *value = min + ((ctx->cursor.x-rect.x-(tw/2.0f))/(rect.w-tw)*(max-min));
+        if (step>0) *value = ((i64)((*value + step/2) / step)) * step;
+    }
+
+    *value = *value < min
+        ? min : *value > max
+        ? max : *value;
+
+    b32 res = false;
+    if (*value != prev) res = true; // Value changed
+
+    // Draw slider
+    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
+    // Draw thumb
+    f32 percentage = (*value - min)/(max-min);
+    Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
+    gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
+
     return res;
 }
