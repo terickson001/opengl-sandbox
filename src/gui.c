@@ -43,6 +43,7 @@ void gui_begin(Gui_Context *ctx, Window win)
     if (ctx->draws)
         array_free(ctx->draws);
     array_init(&ctx->draws);
+    ctx->draw_index = 0;
     ctx->layout.pos = init_vec2f(0, 0);
     ctx->layout.size.x = win.width;
     ctx->layout.items = 1;
@@ -206,11 +207,11 @@ void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, 
 
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
 {
-    if (!array_size(ctx->draws))
+    if (ctx->draw_index >= array_size(ctx->draws))
         return false;
     
-    *ret = ctx->draws[array_size(ctx->draws)-1];
-    array_set_size(&ctx->draws, array_size(ctx->draws)-1);
+    *ret = ctx->draws[ctx->draw_index++];
+    // array_set_size(&ctx->draws, array_size(ctx->draws)-1);
     return true;
 }
 

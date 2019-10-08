@@ -4,7 +4,7 @@ IDIR=include
 SDIR=src
 ODIR=obj
 
-CFLAGS=-I$(IDIR) -IGL -Wall -Wextra -O0 -g -Wno-unused-function -Wno-unused-parameter
+CFLAGS=-I$(IDIR) -IGL -Wall -Wextra -Wno-unused-function -Wno-unused-parameter
 LDFLAGS=-lglfw -lGLEW -lGLU -lGL -lm
 
 SRCS=$(filter-out ,$(wildcard $(SDIR)/*.c))
@@ -13,7 +13,13 @@ DEPS=$(wildcard $(IDIR)/*.h) $(wildcard $(LDIR)/*/*.h)
 
 BINNAME=main
 
-all: $(BINNAME)
+all: release
+
+debug: CFLAGS += -g -O0
+debug: $(BINNAME)
+
+release: CFLAGS += -O3
+release: $(BINNAME)
 
 $(BINNAME): $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

@@ -29,7 +29,7 @@ b32 parse_int(char **str, i64 *ret)
 
 b32 parse_i32(char **str, i32 *ret)
 {
-    i64 i;
+    i64 i = 0;
     b32 ok = parse_int(str, &i);
     *ret = (i32)i;
     return ok;

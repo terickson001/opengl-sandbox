@@ -140,7 +140,12 @@ float get_text_width(Font font, const char *text, int size)
     return width;
 }
 
-void print_text(Font font, const char *text, int x, int y, int size, int layer)
+void buffer_text(Font font, const char *text, int x, int y, int size, int layer, Renderer_Text *r)
+{
+    
+}
+
+void print_text(Font font, const char *text, int x, int y, int size)
 {
     glEnable(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture);

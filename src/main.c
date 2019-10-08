@@ -23,8 +23,8 @@
 #include "sprite.h"
 #include "gui.h"
 #include "renderer.h"
-Window init_gl(int w, int h, char *title)
 
+Window init_gl(int w, int h, char *title)
 {
     if (!glfwInit())
     {
@@ -129,7 +129,7 @@ void do_gui(Gui_Context *ctx, Window win)
     gui_end(ctx);
 }
 
-void draw_gui(Gui_Context *ctx, Renderer_2D *r)
+void draw_gui(Gui_Context *ctx, Renderer_2D *r2d, Renderer_Text *rtext)
 {
     renderer2d_begin(r);
     
@@ -148,19 +148,20 @@ void draw_gui(Gui_Context *ctx, Renderer_2D *r)
             renderer2d_pause(r);
             draw_rect(r,
                       draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h,
-                      -draw.layer, draw.rect.color_id);
+                      draw.layer, draw.rect.color_id);
             renderer2d_resume(r);
             break;
         case GUI_DRAW_TEXT:
             print_text(*(Font *)ctx->style.font, draw.text.text,
                        draw.text.pos.x, 768-draw.text.pos.y-draw.text.size,
-                       draw.text.size, -draw.layer);
+                       draw.text.size, draw.layer);
             break;
         default: break;
         }
     }
 
-    renderer2d_draw(r);
+    renderer2d_draw(r2d);
+    renderer_text_draw(rtext);
 }
 
 int main(void)
@@ -203,6 +204,7 @@ int main(void)
     gui_context.get_text_width = &gui_get_text_width;
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
+    Renderer_Text rtext = make_renderer_text(init_shaders("./shaders/text.vs", 0, "./shader/text.fs"));
     
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -253,7 +255,7 @@ int main(void)
         draw_entity(shader, suzanne_2);
 
         do_gui(&gui_context, window);
-        draw_gui(&gui_context, &r2d);
+        draw_gui(&gui_context, &r2d, &rtext);
         // draw_entity_2d(font.shader, adventurer);
         float fps_w = get_text_width(font, fps_str, 24);
         print_text(font, fps_str, width-fps_w, height-24, 24, -3);

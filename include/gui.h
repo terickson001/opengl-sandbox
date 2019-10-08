@@ -130,6 +130,7 @@ typedef struct Gui_Context
     Gui_Style style;
     
     Array(Gui_Draw) draws;
+    i32 draw_index;
     
     Vec2f cursor;
     KeyState mouse[3];
