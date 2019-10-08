@@ -12,6 +12,7 @@ fi
 
 echo -e "${name}_msdf\n96\n${size}\n" > ./res/font/${name}_msdfmetrics
 for i in $(seq 32 127); do
+    mkdir -p ./res/font/${name}_msdf/
     metrics="$(msdfgen -font ./res/font/${name}.ttf $i -o ./res/font/${name}_msdf/${i}.png -size $size $size -translate $tx $ty -printmetrics)"
 
     if grep -q "bounds" <(echo -e "$metrics"); then
