@@ -1,5 +1,8 @@
 #include "gui.h"
 
+// @Robustness(Tyler): Actually support the `opt` parameter correctly
+
+// @TODO(Tyler): Implement text input
 u64 gui_id(const void *data, isize size)
 {
     return hash_crc64(data, size);
@@ -170,11 +173,14 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
     
     Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_TEXT);
     draw->layer = ctx->layer;
-    draw->text.text = str;
     draw->text.pos = pos;
     draw->text.size = height;
     draw->text.color_id = color_id;
     draw->text.color = ctx->style.colors[color_id];
+    
+    draw->text.text = malloc(strlen(str)+1);
+    strcpy(draw->text.text, str);
+
 }
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
@@ -229,6 +235,7 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
     b32 res = false;
     Gui_Rect rect = gui_layout_rect(ctx);
 
+    i32 base_layer = ctx->layer;
     b32 was_focus = ctx->focus == id;
     gui_update_focus(ctx, rect, id, 0);
     
@@ -237,10 +244,15 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BUTTON, GUI_OPT_BORDER);
     
+    ctx->layer = base_layer+2;
+    {
+        gui_draw_text(ctx, label, rect, GUI_COLOR_TEXT, 0);
+    }
+    ctx->layer = base_layer;
     return res;
 }
 
-b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 step, i32 opt)
+b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt)
 {
     u64 id = gui_id(label, strlen(label));
 
@@ -267,15 +279,17 @@ b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
     
     // Draw thumb
-    {   ctx->layer = base_layer+1;
+    {   ctx->layer = base_layer+2;
         f32 percentage = (*value - min)/(max-min);
         Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
         gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
     }
     // Draw value
-    ctx->layer = base_layer+2;
+    ctx->layer = base_layer+3;
     {
-        gui_draw_text(ctx, "VALUE", rect, GUI_COLOR_TEXT, 0);
+        char val_buf[128];
+        snprintf(val_buf, 128, fmt, *value);
+        gui_draw_text(ctx, val_buf, rect, GUI_COLOR_TEXT, 0);
     }
     ctx->layer = base_layer;
     return res;

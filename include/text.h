@@ -6,6 +6,7 @@
 
 #include "shaders.h"
 #include "image.h"
+#include "renderer.h"
 
 typedef struct Glyph_Metrics
 {
@@ -35,7 +36,8 @@ typedef struct Font
     
 Font load_font(const char *directory);
 float get_text_width(Font font, const char *text, int size);
-void print_text(Font font, const char *text, int x, int y, int size, int layer);
+void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, int size, int layer);
+void print_text(Font font, const char *text, int x, int y, int size);
 void destroy_font(Font font);
 
 #endif // _TEXT_H

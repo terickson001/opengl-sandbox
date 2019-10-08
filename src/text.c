@@ -140,9 +140,56 @@ float get_text_width(Font font, const char *text, int size)
     return width;
 }
 
-void buffer_text(Font font, const char *text, int x, int y, int size, int layer, Renderer_Text *r)
+void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, int size, int layer)
 {
-    
+    float x0, x1, y0, y1;
+    float ux0, ux1, uy0, uy1;
+
+    Glyph_Metrics metrics;
+    float scale = (float)size / (font.info.ascent - font.info.descent);
+    while (*text)
+    {
+
+        if (32 <= *text && *text < 128)
+        {
+            metrics = font.info.metrics[*text-32];
+            if (*text == 32) // skip spaces
+            {
+                x += metrics.advance*scale;
+                text++;
+                continue;
+            }
+            
+            x0 = x + metrics.x0*scale;
+            y0 = y + metrics.y0*scale;
+            x1 = x + metrics.x1*scale;
+            y1 = y + metrics.y1*scale;
+            
+            ux0 = (metrics.x0)/font.info.size;
+            uy0 = (metrics.y0)/font.info.size;
+            ux1 = (metrics.x1)/font.info.size;
+            uy1 = (metrics.y1)/font.info.size;
+            
+            array_append(&r->layers[layer].vertices, init_vec2f(x0, y0));
+            array_append(&r->layers[layer].vertices, init_vec2f(x1, y0));
+            array_append(&r->layers[layer].vertices, init_vec2f(x0, y1));
+
+            array_append(&r->layers[layer].vertices, init_vec2f(x1, y1));
+            array_append(&r->layers[layer].vertices, init_vec2f(x0, y1));
+            array_append(&r->layers[layer].vertices, init_vec2f(x1, y0));
+            
+            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy0, *text-32));
+            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy0, *text-32));
+            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy1, *text-32));
+            
+            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy1, *text-32));
+            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy1, *text-32));
+            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy0, *text-32));
+            
+            x += metrics.advance*scale;
+        }
+        text++;
+    }
 }
 
 void print_text(Font font, const char *text, int x, int y, int size)
@@ -150,7 +197,7 @@ void print_text(Font font, const char *text, int x, int y, int size)
     glEnable(GL_TEXTURE_2D_ARRAY);
     glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture);
     
-    Vec3f *vertices;
+    Vec2f *vertices;
     Vec3f *uvs;
     array_init(&vertices);
     array_init(&uvs);
@@ -183,13 +230,13 @@ void print_text(Font font, const char *text, int x, int y, int size)
             ux1 = (metrics.x1)/font.info.size;
             uy1 = (metrics.y1)/font.info.size;
             
-            array_append(&vertices, init_vec3f(x0, y0, layer));
-            array_append(&vertices, init_vec3f(x1, y0, layer));
-            array_append(&vertices, init_vec3f(x0, y1, layer));
+            array_append(&vertices, init_vec2f(x0, y0));
+            array_append(&vertices, init_vec2f(x1, y0));
+            array_append(&vertices, init_vec2f(x0, y1));
 
-            array_append(&vertices, init_vec3f(x1, y1, layer));
-            array_append(&vertices, init_vec3f(x0, y1, layer));
-            array_append(&vertices, init_vec3f(x1, y0, layer));
+            array_append(&vertices, init_vec2f(x1, y1));
+            array_append(&vertices, init_vec2f(x0, y1));
+            array_append(&vertices, init_vec2f(x1, y0));
             
             array_append(&uvs, init_vec3f(ux0, uy0, *text-32));
             array_append(&uvs, init_vec3f(ux1, uy0, *text-32));
@@ -206,7 +253,7 @@ void print_text(Font font, const char *text, int x, int y, int size)
 
     // Fill the vertex and uv buffers
     glBindBuffer(GL_ARRAY_BUFFER, font.vbuff);
-    glBufferData(GL_ARRAY_BUFFER, array_size(vertices)*sizeof(Vec3f), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, array_size(vertices)*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, font.uvbuff);
     glBufferData(GL_ARRAY_BUFFER, array_size(uvs)*sizeof(Vec3f), uvs, GL_STATIC_DRAW);
@@ -225,7 +272,7 @@ void print_text(Font font, const char *text, int x, int y, int size)
     // Setup vertex attrib buffer
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, font.vbuff);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
     // Setup uv attrib buffer
     glEnableVertexAttribArray(1);

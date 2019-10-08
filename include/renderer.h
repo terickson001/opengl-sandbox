@@ -4,6 +4,7 @@
 #include "lib.h"
 #include "glmath2.h"
 #include "shaders.h"
+#include "texture.h"
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -42,11 +43,11 @@ typedef struct Renderer_Text
 
     struct {
         Array(Vec2f) vertices;
-        Array(vec3f) uvs;
-    } layer[RENDERER_MAX_DEPTH];
+        Array(Vec3f) uvs;
+    } layers[RENDERER_MAX_DEPTH];
 
     GLuint vbuff, uvbuff;
-}
+} Renderer_Text;
 
 Renderer_3D make_renderer3d(Shader shader);
 Renderer_2D make_renderer2d(Shader shader);
@@ -58,7 +59,7 @@ void renderer2d_begin(Renderer_2D *r);
 void renderer_text_begin(Renderer_Text *r);
 
 void renderer3d_draw(Renderer_3D *r);
-void renderer2d_draw(Renderer_2D *r, i32 layer);
-void renderer_text_draw(Renderer_Text *r, i32 layer);
+void renderer2d_draw(Renderer_2D *r, i32 layer, GLuint tex);
+void renderer_text_draw(Renderer_Text *r, i32 layer, GLuint tex);
 
 #endif

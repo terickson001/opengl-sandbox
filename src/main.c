@@ -81,16 +81,16 @@ void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color 
 {
     y = 768 - y - h; // invert the y-coordinate
     
-    Vec3f vertices[6];
+    Vec2f vertices[6];
     Vec2f uvs[6];
 
-    vertices[0] = init_vec3f(x,   y,   layer);
-    vertices[1] = init_vec3f(x+w, y+h, layer);
-    vertices[2] = init_vec3f(x,   y+h, layer);
+    vertices[0] = init_vec2f(x,   y);
+    vertices[1] = init_vec2f(x+w, y+h);
+    vertices[2] = init_vec2f(x,   y+h);
 
-    vertices[3] = init_vec3f(x,   y,   layer);
-    vertices[4] = init_vec3f(x+w, y,   layer);
-    vertices[5] = init_vec3f(x+w, y+h, layer);
+    vertices[3] = init_vec2f(x,   y);
+    vertices[4] = init_vec2f(x+w, y);
+    vertices[5] = init_vec2f(x+w, y+h);
 
     Vec2f c_uv = texture_pallete_index(gui_pallete, color_id);
     f32 uv_size = 1/(f32)gui_pallete.info.width;
@@ -102,8 +102,8 @@ void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color 
     uvs[4] = init_vec2f(c_uv.u + uv_size, c_uv.v);
     uvs[5] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
 
-    array_appendv(&r->vertices, vertices, 6);
-    array_appendv(&r->uvs,      uvs,      6);
+    array_appendv(&r->layers[layer].vertices, vertices, 6);
+    array_appendv(&r->layers[layer].uvs,      uvs,      6);
 }
 
 
@@ -114,30 +114,22 @@ void do_gui(Gui_Context *ctx, Window win)
     KeyState mbuttons[3] = {get_mousestate(0), get_mousestate(1), get_mousestate(2)};
     gui_input_mouse(ctx, mbuttons, mouse_pos());
     gui_row(ctx, 3, (i32[]){70, -70, 0}, 35);
-    if (gui_button(ctx, "Button 1", 0, 0))
-        printf("Button 1 Pressed\n");
-    if (gui_button(ctx, "Button 2", 0, 0))
-        printf("Button 2 Pressed\n");
-    if (gui_button(ctx, "Button 3", 0, 0))
-        printf("Button 3 Pressed\n");
-    if (gui_button(ctx, "Button 4", 0, 0))
-        printf("Button 4 Pressed\n");
-    if (gui_slider(ctx, "Slider 1", &value, 0, 100, 1, 0))
-        printf("Slider updated to %.2f\n", value);
-    if (gui_button(ctx, "Button 6", 0, 0))
-        printf("Button 6 Pressed\n");
+    gui_label(ctx, "Row 1:", 0);
+    if (gui_button(ctx, "Reset", 0, 0))
+        value = 50;
+    if (gui_button(ctx, "+5", 0, 0))
+        value += 5;
+    gui_label(ctx, "Row 2:", 0);
+    gui_slider(ctx, "Slider 1", &value, "%.0f", 0, 100, 1, 0);
+    if (gui_button(ctx, "-5", 0, 0))
+        value -= 5;
     gui_end(ctx);
 }
 
 void draw_gui(Gui_Context *ctx, Renderer_2D *r2d, Renderer_Text *rtext)
 {
-    renderer2d_begin(r);
-    
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gui_pallete.diffuse);
-    
-    glUniform2i(r->shader.uniforms.resolution, 1024, 768);
-    glUniform1i(r->shader.uniforms.diffuse_tex, 0);
+    renderer2d_begin(r2d);
+    renderer_text_begin(rtext);
     
     Gui_Draw draw;
     while (gui_next_draw(ctx, &draw))
@@ -145,23 +137,19 @@ void draw_gui(Gui_Context *ctx, Renderer_2D *r2d, Renderer_Text *rtext)
         switch (draw.kind)
         {
         case GUI_DRAW_RECT:
-            renderer2d_pause(r);
-            draw_rect(r,
+            draw_rect(r2d,
                       draw.rect.rect.x, draw.rect.rect.y, draw.rect.rect.w, draw.rect.rect.h,
                       draw.layer, draw.rect.color_id);
-            renderer2d_resume(r);
             break;
         case GUI_DRAW_TEXT:
-            print_text(*(Font *)ctx->style.font, draw.text.text,
+            buffer_text(rtext, *(Font *)ctx->style.font, draw.text.text,
                        draw.text.pos.x, 768-draw.text.pos.y-draw.text.size,
                        draw.text.size, draw.layer);
+            free(draw.text.text); // Robustness(Tyler): Should this be done in gui_begin or similar?
             break;
         default: break;
         }
     }
-
-    renderer2d_draw(r2d);
-    renderer_text_draw(rtext);
 }
 
 int main(void)
@@ -200,12 +188,15 @@ int main(void)
 
     Entity_2D adventurer = make_entity_2d(&sprite, init_vec2f(512-160, 384-160), init_vec2f(10,10));
 
+
     Gui_Context gui_context = gui_init();
     gui_context.get_text_width = &gui_get_text_width;
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
-    Renderer_Text rtext = make_renderer_text(init_shaders("./shaders/text.vs", 0, "./shader/text.fs"));
-    
+    Font font = load_font("./res/font/OpenSans-Regular");
+    Renderer_Text rtext = make_renderer_text(font.shader);
+    gui_context.style.font = &font;
+
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
     // Mat4f projection_mat = mat4f_ortho(-10, 10, -10, 10, 0, 100);
@@ -227,8 +218,6 @@ int main(void)
     float light_pow = 50.0f;
 
     glClearColor(0.0f, 0.3f, 0.4f, 0.0f);
-    Font font = load_font("./res/font/OpenSans-Regular");
-    gui_context.style.font = &font;
     int nb_frames = 0;
     float accum_time = 0.0;
     char fps_str[256] = "0";
@@ -256,10 +245,20 @@ int main(void)
 
         do_gui(&gui_context, window);
         draw_gui(&gui_context, &r2d, &rtext);
-        // draw_entity_2d(font.shader, adventurer);
+        // draw_entity_2d(font.shader, adventurer); // TODO(Tyler): Use Renderer_2D (How to switch textures mid-layer?)
         float fps_w = get_text_width(font, fps_str, 24);
-        print_text(font, fps_str, width-fps_w, height-24, 24, -3);
-        
+        buffer_text(&rtext, font, fps_str, width-fps_w, height-24, 24, 3);
+
+        glDisable(GL_DEPTH_TEST);
+        for (int i = 0; i < RENDERER_MAX_DEPTH; i++)
+        {
+            if (array_size(r2d.layers[i].vertices))
+                renderer2d_draw(&r2d, i, gui_pallete.diffuse);
+            if (array_size(rtext.layers[i].vertices))
+                renderer_text_draw(&rtext, i, font.texture);
+        }
+        glEnable(GL_DEPTH_TEST);
+
         glfwSwapBuffers(window.handle);
         glfwPollEvents();
         

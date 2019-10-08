@@ -144,8 +144,9 @@ void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos);
 void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 
+void gui_label(Gui_Context *ctx, char *str, i32 opt);
 b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt);
-b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, f32 min, f32 max, f32 step, i32 opt);
+b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt);
 
 // Util
 b32 gui_hover(Gui_Context *ctx, char *label, int icon);
