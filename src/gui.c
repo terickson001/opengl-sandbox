@@ -59,6 +59,7 @@ void gui_end(Gui_Context *ctx)
 {
     // What should be done here?
     memset(ctx->text_input, 0, 128);
+    ctx->layer = 0;
 }
 
 void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
@@ -69,7 +70,7 @@ void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
     ctx->layout.curr_item = 0;
 }
 
-Gui_Rect gui_layout_rect(Gui_Context *ctx)
+Gui_Rect gui_layout_peek_rect(Gui_Context *ctx)
 {
     Gui_Rect rect = {0};
 
@@ -82,15 +83,22 @@ Gui_Rect gui_layout_rect(Gui_Context *ctx)
     // Position relative to right for negative values
     if (rect.w <= 0) rect.w += ctx->layout.size.x - rect.x;
 
-    // Advance layout position
-    ctx->layout.pos.x += rect.w;
-
     // Adjust for padding
     rect.x += ctx->style.padding;
     rect.y += ctx->style.padding;
     rect.w -= ctx->style.padding * 2;
     rect.h -= ctx->style.padding * 2;
     
+    return rect;
+}
+
+Gui_Rect gui_layout_rect(Gui_Context *ctx)
+{
+    Gui_Rect rect = gui_layout_peek_rect(ctx);
+    
+    // Advance layout position
+    ctx->layout.pos.x += rect.w+ctx->style.padding * 2;
+
     ctx->layout.curr_item++;
     if (ctx->layout.curr_item == ctx->layout.items)
     {
@@ -125,7 +133,7 @@ b32 gui_mouse_over(Gui_Context *ctx, Gui_Rect rect)
             rect.y <= m.y && m.y <= rect.y+rect.h);
 }
 
-void gui_update_focus(Gui_Context *ctx, Gui_Rect rect, u64 id, i32 opt)
+void gui_update_focus(Gui_Context *ctx, Gui_Rect rect, u64 id, u32 opt)
 {
     b32 mouse_over = gui_mouse_over(ctx, rect);
 
@@ -163,7 +171,7 @@ void gui_draw_border(Gui_Context *ctx, Gui_Rect rect, u64 id)
     gui_draw_rect(ctx, (Gui_Rect){rect.x+bs,        rect.y+rect.h-bs, rect.w-(2*bs), bs}, id, c, 0); // Bottom
 }
 
-void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_id, i32 opt)
+void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_id, u32 opt)
 {
     Vec2f pos = {0};
 
@@ -185,7 +193,7 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
 
 }
 
-void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, i32 opt)
+void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, u32 opt)
 {
     if (color_id == GUI_COLOR_BUTTON || color_id == GUI_COLOR_BASE)
     {
@@ -223,12 +231,12 @@ b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
     return true;
 }
 
-void gui_label(Gui_Context *ctx, char *str, i32 opt)
+void gui_label(Gui_Context *ctx, char *str, u32 opt)
 {
     gui_draw_text(ctx, str, gui_layout_rect(ctx), GUI_COLOR_TEXT, opt);
 }
 
-u32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
+u32 gui_button(Gui_Context *ctx, char *label, i32 icon, u32 opt)
 {
     u64 id = label
         ? gui_id(label, strlen(label))
@@ -251,10 +259,11 @@ u32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
         gui_draw_text(ctx, label, rect, GUI_COLOR_TEXT, 0);
     }
     ctx->layer = base_layer;
+    
     return res;
 }
 
-u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt)
+u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, u32 opt)
 {
     u64 id = gui_id(label, strlen(label));
 
@@ -281,7 +290,8 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
     
     // Draw thumb
-    {   ctx->layer = base_layer+2;
+    ctx->layer = base_layer+2;
+    {
         f32 percentage = (*value - min)/(max-min);
         Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
         gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
@@ -297,7 +307,7 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     return res;
 }
 
-u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 opt)
+u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 opt)
 {
     u64 id = gui_id(label, strlen(label));
 
@@ -306,7 +316,6 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 o
 
     u32 res = 0;
 
-    
     if (ctx->focus == id)
     {
         // Update textbox
@@ -321,9 +330,11 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 o
             res |= GUI_RES_UPDATE;
         }
 
+        // Backspace
         if (key_pressed(GLFW_KEY_BACKSPACE) && len > 0)
             buf[--len] = 0;
 
+        // Enter
         if (key_pressed(GLFW_KEY_ENTER))
         {
             ctx->focus = 0;
@@ -331,6 +342,48 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 o
         }
     }
 
+    i32 base_layer = ctx->layer;
+    // Draw box
+    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
+
+    // Draw text
+    ctx->layer = base_layer+2;
+    {
+        gui_draw_text(ctx, buf, rect, GUI_COLOR_TEXT, 0);
+    }
     
-    return 0;
+    ctx->layer = base_layer;
+    
+    return res;
+}
+
+u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, u32 opt)
+{
+    u64 id = gui_id(label, strlen(label));
+    Gui_Rect rect = gui_layout_peek_rect(ctx);
+    b32 was_focus = ctx->focus == id;
+    gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
+
+    char *v_buf;
+    if (ctx->focus == id && !was_focus)
+        snprintf(ctx->num_input_buf, 64, fmt, *value);
+    
+    if (ctx->focus == id)
+    {
+        v_buf = ctx->num_input_buf;
+    }
+    else
+    {
+        // Just show value if not active
+        char temp_buf[64];
+        snprintf(temp_buf, 64, fmt, *value);
+        v_buf = temp_buf;
+    }
+    
+    u32 res = gui_text_input(ctx, label, v_buf, 64, opt);
+
+    if (res & GUI_RES_SUBMIT)
+        parse_f32(&v_buf, value);
+
+    return res;
 }

@@ -142,6 +142,12 @@ float get_text_width(Font font, const char *text, int size)
 
 void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, int size, int layer)
 {
+    if (!text)
+        return;
+
+    if (strlen(text) == 0)
+        return;
+    
     float x0, x1, y0, y1;
     float ux0, ux1, uy0, uy1;
 

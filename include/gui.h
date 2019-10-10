@@ -143,6 +143,8 @@ typedef struct Gui_Context
     char text_input[128];
     
     float (*get_text_width)(void *font, char const *text, int size);
+
+    char num_input_buf[64];
 } Gui_Context;
 
 
@@ -151,17 +153,18 @@ void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos);
 void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 
-void gui_label(Gui_Context *ctx, char *str, i32 opt);
-u32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt);
-u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt);
-u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 opt);
+void gui_label(Gui_Context *ctx, char *str, u32 opt);
+u32 gui_button(Gui_Context *ctx, char *label, i32 icon, u32 opt);
+u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, u32 opt);
+u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 opt);
+u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, u32 opt);
 
 // Util
 b32 gui_hover(Gui_Context *ctx, char *label, int icon);
 b32 gui_active(Gui_Context *ctx, char *label, int icon);
 
 // Draw
-void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color, i32 opt);
+void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color, u32 opt);
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *Ret);
 
 // Layout

@@ -111,6 +111,7 @@ void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color 
 
 
 static f32 value = 50;
+static char text_buf[128];
 void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
@@ -122,11 +123,14 @@ void do_gui(Gui_Context *ctx, Window win)
         value = 50;
     if (gui_button(ctx, "+5", 0, 0))
         value += 5;
-    // gui_text_input(ctx, "Text input", &value, "%.0f", 0);
     gui_label(ctx, "Row 2:", 0);
     gui_slider(ctx, "Slider 1", &value, "%.0f", 0, 100, 1, 0);
     if (gui_button(ctx, "-5", 0, 0))
         value -= 5;
+    gui_row(ctx, 2, (i32[]){512, 0}, 35);
+    gui_text_input(ctx, "Text input", text_buf, 128, 0);
+    gui_number_input(ctx, "Number input", &value, "%.0f", 0, 100, 1, 0);
+
     gui_end(ctx);
 }
 
