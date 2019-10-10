@@ -15,10 +15,13 @@ typedef enum KeyState
 } KeyState;
 
 void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, int mods);
+void keyboard_char_callback(GLFWwindow *window, u32 codepoint);
 KeyState get_keystate(int k);
 b32 key_down(int k);
 b32 key_pressed(int k);
 b32 key_released(int k);
+void keyboard_text_hook(char *text_buffer);
+void keyboard_text_unhook();
 
 
 void update_mousepos(GLFWwindow *window, double x, double y);

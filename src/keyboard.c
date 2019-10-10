@@ -5,14 +5,16 @@
 
 typedef struct Keyboard
 {
-    KeyState keys[312];
+    KeyState keys[316];
+    char *text_buffer;
+    // u32 text_buffer_index;
 } Keyboard;
 static Keyboard KEYBOARD = {0};
 
 void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, int mods)
 {
     int code = keycode - 32;
-    if (code > 312)
+    if (code > 316)
     {
         fprintf(stderr, "Keycode '%d' out of range\n", keycode);
         return;
@@ -27,7 +29,7 @@ void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, 
 KeyState get_keystate(int k)
 {
     int code = k - 32;
-    if (code > 312)
+    if (code > 316)
     {
         fprintf(stderr, "Keycode '%d' out of range\n", k);
         return KeyState_NONE;
@@ -73,6 +75,24 @@ b32 key_released(int k)
     int code = k-32;
     KEYBOARD.keys[code] = state;
     return false;
+}
+
+void keyboard_text_hook(char *text_buffer)
+{
+    KEYBOARD.text_buffer = text_buffer;
+    // KEYBOARD.text_buffer_index = 0;
+}
+
+void keyboard_text_unhook()
+{
+    KEYBOARD.text_buffer = 0;
+    // KEYBOARD.text_buffer_index = 0;
+}
+
+void keyboard_char_callback(GLFWwindow *window, u32 codepoint)
+{
+    if (KEYBOARD.text_buffer)
+        KEYBOARD.text_buffer[strlen(KEYBOARD.text_buffer)] = (char)codepoint;
 }
 
 // Mouse

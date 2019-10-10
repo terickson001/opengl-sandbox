@@ -66,7 +66,10 @@ Window init_gl(int w, int h, char *title)
     glfwSetKeyCallback(window.handle, update_keystate);
     glfwSetMouseButtonCallback(window.handle, update_mousestate);
     glfwSetCursorPosCallback(window.handle, update_mousepos);
+    glfwSetCharCallback(window.handle, keyboard_char_callback);
+
     glfwSetInputMode(window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     
     return window;
 }
@@ -119,6 +122,7 @@ void do_gui(Gui_Context *ctx, Window win)
         value = 50;
     if (gui_button(ctx, "+5", 0, 0))
         value += 5;
+    // gui_text_input(ctx, "Text input", &value, "%.0f", 0);
     gui_label(ctx, "Row 2:", 0);
     gui_slider(ctx, "Slider 1", &value, "%.0f", 0, 100, 1, 0);
     if (gui_button(ctx, "-5", 0, 0))
@@ -191,11 +195,15 @@ int main(void)
 
     Gui_Context gui_context = gui_init();
     gui_context.get_text_width = &gui_get_text_width;
+    keyboard_text_hook(gui_context.text_input);
+    
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
+    
     Font font = load_font("./res/font/OpenSans-Regular");
     Renderer_Text rtext = make_renderer_text(font.shader);
     gui_context.style.font = &font;
+
 
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -250,6 +258,7 @@ int main(void)
         buffer_text(&rtext, font, fps_str, width-fps_w, height-24, 24, 3);
 
         glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
         for (int i = 0; i < RENDERER_MAX_DEPTH; i++)
         {
             if (array_size(r2d.layers[i].vertices))
@@ -258,6 +267,7 @@ int main(void)
                 renderer_text_draw(&rtext, i, font.texture);
         }
         glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
 
         glfwSwapBuffers(window.handle);
         glfwPollEvents();

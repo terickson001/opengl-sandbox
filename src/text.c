@@ -149,7 +149,6 @@ void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, in
     float scale = (float)size / (font.info.ascent - font.info.descent);
     while (*text)
     {
-
         if (32 <= *text && *text < 128)
         {
             metrics = font.info.metrics[*text-32];
@@ -191,112 +190,6 @@ void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, in
         text++;
     }
 }
-
-void print_text(Font font, const char *text, int x, int y, int size)
-{
-    glEnable(GL_TEXTURE_2D_ARRAY);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture);
-    
-    Vec2f *vertices;
-    Vec3f *uvs;
-    array_init(&vertices);
-    array_init(&uvs);
-
-    float x0, x1, y0, y1;
-    float ux0, ux1, uy0, uy1;
-
-    Glyph_Metrics metrics;
-    float scale = (float)size / (font.info.ascent - font.info.descent);
-    while (*text)
-    {
-
-        if (32 <= *text && *text < 128)
-        {
-            metrics = font.info.metrics[*text-32];
-            if (*text == 32) // skip spaces
-            {
-                x += metrics.advance*scale;
-                text++;
-                continue;
-            }
-            
-            x0 = x + metrics.x0*scale;
-            y0 = y + metrics.y0*scale;
-            x1 = x + metrics.x1*scale;
-            y1 = y + metrics.y1*scale;
-            
-            ux0 = (metrics.x0)/font.info.size;
-            uy0 = (metrics.y0)/font.info.size;
-            ux1 = (metrics.x1)/font.info.size;
-            uy1 = (metrics.y1)/font.info.size;
-            
-            array_append(&vertices, init_vec2f(x0, y0));
-            array_append(&vertices, init_vec2f(x1, y0));
-            array_append(&vertices, init_vec2f(x0, y1));
-
-            array_append(&vertices, init_vec2f(x1, y1));
-            array_append(&vertices, init_vec2f(x0, y1));
-            array_append(&vertices, init_vec2f(x1, y0));
-            
-            array_append(&uvs, init_vec3f(ux0, uy0, *text-32));
-            array_append(&uvs, init_vec3f(ux1, uy0, *text-32));
-            array_append(&uvs, init_vec3f(ux0, uy1, *text-32));
-            
-            array_append(&uvs, init_vec3f(ux1, uy1, *text-32));
-            array_append(&uvs, init_vec3f(ux0, uy1, *text-32));
-            array_append(&uvs, init_vec3f(ux1, uy0, *text-32));
-            
-            x += metrics.advance*scale;
-        }
-        text++;
-    }
-
-    // Fill the vertex and uv buffers
-    glBindBuffer(GL_ARRAY_BUFFER, font.vbuff);
-    glBufferData(GL_ARRAY_BUFFER, array_size(vertices)*sizeof(Vec2f), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, font.uvbuff);
-    glBufferData(GL_ARRAY_BUFFER, array_size(uvs)*sizeof(Vec3f), uvs, GL_STATIC_DRAW);
-
-    // Enable the text shader
-    glUseProgram(font.shader.id);
-
-    glUniform2i(font.shader.uniforms.resolution, 1024, 768);
-    // Bind the texture
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture);
-
-    // Set the sampler to use texture unit 0
-    glUniform1i(font.uniform, 0);
-
-    // Setup vertex attrib buffer
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, font.vbuff);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-    // Setup uv attrib buffer
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, font.uvbuff);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    // Enable transparency for font
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // Draw
-    glDrawArrays(GL_TRIANGLES, 0, array_size(vertices));
-
-    // Disable transparency
-    glDisable(GL_BLEND);
-
-    // Cleanup
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    
-    array_free(vertices);
-    array_free(uvs);
-}
-
 
 void destroy_font(Font font)
 {

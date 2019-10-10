@@ -8,6 +8,12 @@
 
 #define MAX_ROW_ITEMS 16
 
+typedef enum Gui_Res
+{
+    GUI_RES_SUBMIT   = 0x1,
+    GUI_RES_UPDATE   = 0x2,
+} Gui_Res;
+
 typedef enum Gui_Opt
 {
     GUI_OPT_BORDER     = 0x1,
@@ -134,7 +140,8 @@ typedef struct Gui_Context
     
     Vec2f cursor;
     KeyState mouse[3];
-
+    char text_input[128];
+    
     float (*get_text_width)(void *font, char const *text, int size);
 } Gui_Context;
 
@@ -145,8 +152,9 @@ void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 
 void gui_label(Gui_Context *ctx, char *str, i32 opt);
-b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt);
-b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt);
+u32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt);
+u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt);
+u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 opt);
 
 // Util
 b32 gui_hover(Gui_Context *ctx, char *label, int icon);

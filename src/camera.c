@@ -65,23 +65,11 @@ void update_camera_angle(Window win, Camera *cam, float dt)
     );
 
     cam->up = vec3f_cross(cam->right, cam->dir);
-
-    /* printf("CAMERA:\n"); */
-    /* printf("  dir: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
-    /*        cam->dir.x, cam->dir.y, cam->dir.z, */
-    /*        DEG(cam->yaw), DEG(cam->pitch)); */
-    /* printf("  up: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
-    /*        cam->up.x, cam->up.y, cam->up.z, */
-    /*        DEG(cam->yaw), DEG(cam->pitch)); */
-    /* printf("  right: [%.2f, %.2f, %.2f] (%.2f, %.2f)\n", */
-    /*        cam->right.x, cam->right.y, cam->right.z, */
-    /*        DEG(cam->yaw-M_PI/2), 0.0f); */
 }
 
 void update_camera_position(Window win, Camera *cam, float dt)
 {
-
-    if (get_keystate(GLFW_KEY_ENTER) == KeyState_PRESSED)
+    if (get_keystate('[') == KeyState_PRESSED)
     {
         cam->detach_key_down = true;
         cam->detach = !cam->detach;

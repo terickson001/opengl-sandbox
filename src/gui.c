@@ -1,8 +1,9 @@
 #include "gui.h"
 
+#include "config.h"
 // @Robustness(Tyler): Actually support the `opt` parameter correctly
-
 // @TODO(Tyler): Implement text input
+
 u64 gui_id(const void *data, isize size)
 {
     return hash_crc64(data, size);
@@ -57,6 +58,7 @@ void gui_begin(Gui_Context *ctx, Window win)
 void gui_end(Gui_Context *ctx)
 {
     // What should be done here?
+    memset(ctx->text_input, 0, 128);
 }
 
 void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
@@ -226,13 +228,13 @@ void gui_label(Gui_Context *ctx, char *str, i32 opt)
     gui_draw_text(ctx, str, gui_layout_rect(ctx), GUI_COLOR_TEXT, opt);
 }
 
-b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
+u32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
 {
     u64 id = label
         ? gui_id(label, strlen(label))
         : gui_id(&icon, sizeof(icon));
 
-    b32 res = false;
+    b32 res = 0;
     Gui_Rect rect = gui_layout_rect(ctx);
 
     i32 base_layer = ctx->layer;
@@ -240,7 +242,7 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
     gui_update_focus(ctx, rect, id, 0);
     
     if (was_focus && gui_mouse_released(ctx, 0) && id == ctx->hover)
-            res = true;
+            res |= GUI_RES_SUBMIT;
 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BUTTON, GUI_OPT_BORDER);
     
@@ -252,7 +254,7 @@ b32 gui_button(Gui_Context *ctx, char *label, i32 icon, i32 opt)
     return res;
 }
 
-b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt)
+u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 min, f32 max, f32 step, i32 opt)
 {
     u64 id = gui_id(label, strlen(label));
 
@@ -271,8 +273,8 @@ b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
         ? min : *value > max
         ? max : *value;
 
-    b32 res = false;
-    if (*value != prev) res = true; // Value changed
+    u32 res = 0;
+    if (*value != prev) res |= GUI_RES_UPDATE; // Value changed
 
     i32 base_layer = ctx->layer;
     // Draw slider
@@ -293,4 +295,42 @@ b32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     }
     ctx->layer = base_layer;
     return res;
+}
+
+u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, i32 opt)
+{
+    u64 id = gui_id(label, strlen(label));
+
+    Gui_Rect rect = gui_layout_rect(ctx);
+    gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
+
+    u32 res = 0;
+
+    
+    if (ctx->focus == id)
+    {
+        // Update textbox
+        int len = strlen(buf);
+        int in_len = strlen(ctx->text_input);
+        int n = buf_size - len - 1 > in_len ? in_len : buf_size - len - 1;
+        if (n > 0)
+        {
+            memcpy(buf + len, ctx->text_input, n);
+            len += n;
+            buf[len] = 0;
+            res |= GUI_RES_UPDATE;
+        }
+
+        if (key_pressed(GLFW_KEY_BACKSPACE) && len > 0)
+            buf[--len] = 0;
+
+        if (key_pressed(GLFW_KEY_ENTER))
+        {
+            ctx->focus = 0;
+            res |= GUI_RES_SUBMIT;
+        }
+    }
+
+    
+    return 0;
 }
