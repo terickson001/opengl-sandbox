@@ -36,7 +36,7 @@ typedef struct Font
     
 Font load_font(const char *directory);
 float get_text_width(Font font, const char *text, int size);
-void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, int size, int layer);
+void buffer_text(Renderer_Text *r, Font font, const char *text, float x, float y, int size, int layer);
 void destroy_font(Font font);
 
 #endif // _TEXT_H

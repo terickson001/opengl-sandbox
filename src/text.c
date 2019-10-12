@@ -143,11 +143,14 @@ float get_text_width(Font font, const char *text, int size)
         if (32 <= text[i] && text[i] < 128)
             width += font.info.metrics[text[i]-32].advance * scale;
     }
-    width += (font.info.metrics[text[len-1]-32].x1 - font.info.metrics[text[len-1]-32].x0) * scale;
+    if (text[len-1] == 32)
+        width += (font.info.metrics[text[len-1]-32].advance) * scale;
+    else
+        width += (font.info.metrics[text[len-1]-32].x1) * scale;
     return width;
 }
 
-void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, int size, int layer)
+void buffer_text(Renderer_Text *r, Font font, const char *text, float x, float y, int size, int layer)
 {
     if (!text)
         return;
@@ -172,15 +175,15 @@ void buffer_text(Renderer_Text *r, Font font, const char *text, int x, int y, in
                 continue;
             }
             
-            x0 = x + metrics.x0*scale;
-            y0 = y + metrics.y0*scale;
-            x1 = x + metrics.x1*scale;
-            y1 = y + metrics.y1*scale;
+            x0 = x + (metrics.x0 * scale);
+            y0 = y + (metrics.y0 * scale);
+            x1 = x + (metrics.x1 * scale);
+            y1 = y + (metrics.y1 * scale);
             
-            ux0 = (metrics.x0)/font.info.size;
-            uy0 = (metrics.y0)/font.info.size;
-            ux1 = (metrics.x1)/font.info.size;
-            uy1 = (metrics.y1)/font.info.size;
+            ux0 = metrics.x0 / font.info.size;
+            uy0 = metrics.y0 / font.info.size;
+            ux1 = metrics.x1 / font.info.size;
+            uy1 = metrics.y1 / font.info.size;
             
             array_append(&r->layers[layer].vertices, init_vec2f(x0, y0));
             array_append(&r->layers[layer].vertices, init_vec2f(x1, y0));
