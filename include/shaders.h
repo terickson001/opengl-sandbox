@@ -23,13 +23,14 @@ typedef struct Shader
         struct
         {
             GLint resolution;
+            GLint px_range;
             
             GLint model_matrix;
             GLint view_matrix;
             GLint projection_matrix;
             GLint mvp_matrix;
             GLint vp_matrix;
-              
+
             GLint diffuse_tex;
             GLint normal_tex;
             GLint specular_tex;

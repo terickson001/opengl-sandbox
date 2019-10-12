@@ -137,6 +137,7 @@ void renderer_text_draw(Renderer_Text *r, i32 layer, GLuint tex)
     glUseProgram(r->shader.id);
     
     glUniform2i(r->shader.uniforms.resolution, 1024, 768);
+    glUniform1f(r->shader.uniforms.px_range, 4);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, tex);

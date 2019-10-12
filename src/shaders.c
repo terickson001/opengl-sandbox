@@ -145,6 +145,7 @@ Shader init_shaders(const char *vs_filepath, const char *gs_filepath, const char
     memcpy(s.fs_filepath, fs_filepath, fs_len+1);
 
     s.uniforms.resolution = glGetUniformLocation(s.id, "resolution");
+    s.uniforms.px_range = glGetUniformLocation(s.id, "px_range");
     
     s.uniforms.model_matrix      = glGetUniformLocation(s.id, "M");
     s.uniforms.view_matrix       = glGetUniformLocation(s.id, "V");

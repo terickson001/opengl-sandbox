@@ -3,6 +3,7 @@
 in vec3 uv;
 
 uniform sampler2DArray texture_sampler;
+uniform float px_range;
 
 out vec4 color;
 
@@ -13,15 +14,11 @@ float median(vec3 texel)
 
 void main()
 {
-    vec2 pos = uv.xy;
-    vec3 texel = texture(texture_sampler, uv).rgb;
-    ivec2 sz = textureSize(texture_sampler, 0).xy;
-    float dx = dFdx(pos.x) * sz.x;
-    float dy = dFdx(pos.y) * sz.y;
-    float to_pixels = 8.0 * inversesqrt(dx*dx + dy*dy);
-    float sig_dist = median(texel);
-    float w = fwidth(sig_dist);
-    float opacity = smoothstep(0.5 -w, 0.5 + w, sig_dist);
-
+	vec2 msdf_unit = px_range / vec2(textureSize(texture_sampler, 0));
+	vec3 s = texture(texture_sampler, uv).rgb;
+	float sig_dist = median(s) - 0.5;
+	sig_dist *= dot(msdf_unit, 0.5 / fwidth(uv.xy));
+    float opacity = clamp(sig_dist + 0.5, 0.0, 1.0);
+    
     color = vec4(1, 1, 1, opacity);
 }
