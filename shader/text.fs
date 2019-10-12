@@ -23,5 +23,6 @@ void main()
     float w = fwidth(sig_dist);
     float opacity = smoothstep(0.5 -w, 0.5 + w, sig_dist);
 
-    color = vec4(1, 1, 1, opacity);
+    // color = vec4(1, 1, 1, opacity);
+    color = vec4(1);
 }

@@ -1,8 +1,8 @@
 #include "gui.h"
 
 #include "config.h"
+
 // @Robustness(Tyler): Actually support the `opt` parameter correctly
-// @TODO(Tyler): Implement text input
 
 u64 gui_id(const void *data, isize size)
 {
@@ -190,7 +190,6 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
     
     draw->text.text = malloc(strlen(str)+1);
     strcpy(draw->text.text, str);
-
 }
 
 void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, u32 opt)
@@ -352,6 +351,13 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         gui_draw_text(ctx, buf, rect, GUI_COLOR_TEXT, 0);
     }
     
+    // Draw cursor
+    ctx->layer = base_layer+3;
+    if (ctx->focus == id) {
+        float text_width = ctx->get_text_width(ctx->style.font, buf, ctx->style.text_height);
+        Gui_Rect cursor = {rect.x+(rect.w+text_width)/2, rect.y+(rect.h-ctx->style.text_height)/2, 2, ctx->style.text_height};
+        gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
+    }
     ctx->layer = base_layer;
     
     return res;

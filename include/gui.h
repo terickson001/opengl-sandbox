@@ -141,6 +141,8 @@ typedef struct Gui_Context
     Vec2f cursor;
     KeyState mouse[3];
     char text_input[128];
+
+    i32 text_box_cursor;
     
     float (*get_text_width)(void *font, char const *text, int size);
 
