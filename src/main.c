@@ -74,9 +74,9 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
-float gui_get_text_width(void *font, char const *text, int size)
+float gui_get_text_width(void *font, char const *text, int n, int size)
 {
-    return get_text_width(*(Font *)font, text, size);
+    return get_text_widthn(*(Font *)font, text, n, size);
 }
 
 static Texture gui_pallete;

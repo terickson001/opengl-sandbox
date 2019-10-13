@@ -6,11 +6,6 @@
 #include "util.h"
 #include "keyboard.h"
 
-#define ABS(x) ((x)<0?-(x):(x))
-#define MAX(x, y) ((x)>(y)?(x):(y))
-#define MIN(x, y) ((x)<(y)?(x):(y))
-#define SIGNUM(x) ((x)<0?-1:1)
-
 Camera make_camera(Vec3f pos, Vec3f dir, float move_speed, float rotate_speed)
 {
     Camera cam = {0};

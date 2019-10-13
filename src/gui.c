@@ -176,7 +176,7 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
     Vec2f pos = {0};
 
     float height = ctx->style.text_height;
-    float width = ctx->get_text_width(ctx->style.font, str, ctx->style.text_height);
+    float width = ctx->get_text_width(ctx->style.font, str, -1, ctx->style.text_height);
 
     pos.x = rect.x + (rect.w - width)/2;
     pos.y = rect.y + (rect.h - height)/2;
@@ -306,11 +306,37 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     return res;
 }
 
+int _insert_string_at(char *dst, char *src, int idx, int max)
+{
+    int dlen = strlen(dst);
+    int slen = strlen(src);
+    slen = MIN(slen, max - dlen);
+
+    char *temp = malloc(max);
+    memcpy(temp, dst, idx);
+    memcpy(temp+idx, src, slen);
+    memcpy(temp+idx+slen, dst+idx, dlen-idx);
+
+    memcpy(dst, temp, dlen+slen);
+    
+    free(temp);
+
+    return slen;
+}
+
+void _remove_char_at(char *str, int idx)
+{
+    int len = strlen(str);
+
+    memcpy(str+idx-1, str+idx, len-idx+1);
+}
+
 u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 opt)
 {
     u64 id = gui_id(label, strlen(label));
 
     Gui_Rect rect = gui_layout_rect(ctx);
+    b32 was_focus = ctx->focus == id;
     gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
 
     u32 res = 0;
@@ -319,26 +345,34 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     {
         // Update textbox
         int len = strlen(buf);
-        int in_len = strlen(ctx->text_input);
-        int n = buf_size - len - 1 > in_len ? in_len : buf_size - len - 1;
-        if (n > 0)
-        {
-            memcpy(buf + len, ctx->text_input, n);
-            len += n;
-            buf[len] = 0;
-            res |= GUI_RES_UPDATE;
-        }
+        if (!was_focus)
+            ctx->text_box_cursor = len;
+
+        if (*ctx->text_input)
+            ctx->text_box_cursor += _insert_string_at(buf, ctx->text_input, ctx->text_box_cursor, buf_size-1);
 
         // Backspace
-        if (key_pressed(GLFW_KEY_BACKSPACE) && len > 0)
-            buf[--len] = 0;
-
+        if (key_pressed(GLFW_KEY_BACKSPACE) && ctx->text_box_cursor > 0)
+            _remove_char_at(buf, ctx->text_box_cursor--);
+        else if(key_pressed(GLFW_KEY_DELETE) && ctx->text_box_cursor < len)
+                _remove_char_at(buf, ctx->text_box_cursor + 1);
         // Enter
         if (key_pressed(GLFW_KEY_ENTER))
         {
             ctx->focus = 0;
             res |= GUI_RES_SUBMIT;
         }
+
+        if (key_pressed(GLFW_KEY_LEFT) && ctx->text_box_cursor > 0)
+            ctx->text_box_cursor--;
+        else if (key_pressed(GLFW_KEY_RIGHT) && ctx->text_box_cursor < len)
+            ctx->text_box_cursor++;
+        else if (key_pressed(GLFW_KEY_HOME))
+            ctx->text_box_cursor = 0;
+        else if (key_pressed(GLFW_KEY_END))
+            ctx->text_box_cursor = len;
+
+        printf("CURSOR: %d\n", ctx->text_box_cursor);
     }
 
     i32 base_layer = ctx->layer;
@@ -354,8 +388,11 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     // Draw cursor
     ctx->layer = base_layer+3;
     if (ctx->focus == id) {
-        float text_width = ctx->get_text_width(ctx->style.font, buf, ctx->style.text_height);
-        Gui_Rect cursor = {rect.x+(rect.w+text_width)/2, rect.y+(rect.h-ctx->style.text_height)/2, 2, ctx->style.text_height};
+        float text_width = ctx->get_text_width(ctx->style.font, buf, -1, ctx->style.text_height);
+        float cursor_text_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_cursor, ctx->style.text_height);
+        float diff = text_width - cursor_text_pos;
+        
+        Gui_Rect cursor = {rect.x+(rect.w+text_width)/2-diff, rect.y+(rect.h-ctx->style.text_height)/2, 2, ctx->style.text_height};
         gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
     }
     ctx->layer = base_layer;
@@ -371,16 +408,15 @@ u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt,
     gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
 
     char *v_buf;
-    if (ctx->focus == id && !was_focus)
-        snprintf(ctx->num_input_buf, 64, fmt, *value);
-    
     if (ctx->focus == id)
     {
+        if (!was_focus)
+            ctx->text_box_cursor = snprintf(ctx->num_input_buf, 64, fmt, *value);
         v_buf = ctx->num_input_buf;
     }
     else
     {
-        // Just show value if not active
+        // Show value if not active
         char temp_buf[64];
         snprintf(temp_buf, 64, fmt, *value);
         v_buf = temp_buf;

@@ -129,24 +129,28 @@ Font load_font(const char *name)
 
 float get_text_width(Font font, const char *text, int size)
 {
+    return get_text_widthn(font, text, -1, size);
+}
+
+float get_text_widthn(Font font, const char *text, int n, int size)
+{
     if (!text)
         return 0;
 
-    int len = strlen(text);
+    int len = n;
+    if (len == -1)
+        len = strlen(text);
+    
     if (len == 0)
         return 0;
     
     float width = 0;
     float scale = (float)size / (font.info.ascent - font.info.descent);
-    for (int i = 0; i < len-1; i++)
+    for (int i = 0; i < len; i++)
     {
         if (32 <= text[i] && text[i] < 128)
             width += font.info.metrics[text[i]-32].advance * scale;
     }
-    if (text[len-1] == 32)
-        width += (font.info.metrics[text[len-1]-32].advance) * scale;
-    else
-        width += (font.info.metrics[text[len-1]-32].x1) * scale;
     return width;
 }
 

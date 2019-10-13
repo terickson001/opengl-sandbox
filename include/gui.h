@@ -144,7 +144,7 @@ typedef struct Gui_Context
 
     i32 text_box_cursor;
     
-    float (*get_text_width)(void *font, char const *text, int size);
+    float (*get_text_width)(void *font, char const *text, int n, int size);
 
     char num_input_buf[64];
 } Gui_Context;
