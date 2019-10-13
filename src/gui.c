@@ -324,11 +324,45 @@ int _insert_string_at(char *dst, char *src, int idx, int max)
     return slen;
 }
 
+int _remove_string_between(char *str, int idx_start, int idx_end)
+{
+    if (idx_start == idx_end)
+        return 0;
+    
+    int len = strlen(str);
+    int ret = idx_end - idx_start;
+    if (idx_start > idx_end)
+    {
+        int tmp = idx_start;
+        idx_start = idx_end;
+        idx_end = tmp;
+        ret = 0;
+    }
+    
+    memcpy(str+idx_start, str+idx_end, len-idx_end);
+    memset(str+idx_start+(len-idx_end), 0, idx_start+idx_end);
+
+    return ret;
+}
 void _remove_char_at(char *str, int idx)
 {
     int len = strlen(str);
 
     memcpy(str+idx-1, str+idx, len-idx+1);
+}
+
+void _update_cursor(Gui_Context *ctx, int change, int max)
+{
+    if (key_down(GLFW_KEY_LEFT_SHIFT) && ctx->text_box_mark == -1)
+        ctx->text_box_mark = ctx->text_box_cursor;
+    else if (!key_down(GLFW_KEY_LEFT_SHIFT))
+        ctx->text_box_mark = -1;
+
+    ctx->text_box_cursor += change;
+    ctx->text_box_cursor = CLAMP(ctx->text_box_cursor, 0, max);
+
+    if (ctx->text_box_cursor == ctx->text_box_mark)
+        ctx->text_box_mark = -1;
 }
 
 u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 opt)
@@ -343,19 +377,34 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
 
     if (ctx->focus == id)
     {
-        // Update textbox
         int len = strlen(buf);
         if (!was_focus)
+        {
+            ctx->text_box_mark = 0;
             ctx->text_box_cursor = len;
+        }
 
         if (*ctx->text_input)
             ctx->text_box_cursor += _insert_string_at(buf, ctx->text_input, ctx->text_box_cursor, buf_size-1);
 
         // Backspace
-        if (key_pressed(GLFW_KEY_BACKSPACE) && ctx->text_box_cursor > 0)
-            _remove_char_at(buf, ctx->text_box_cursor--);
-        else if(key_pressed(GLFW_KEY_DELETE) && ctx->text_box_cursor < len)
+        if (key_pressed(GLFW_KEY_BACKSPACE))
+        {
+            if (ctx->text_box_mark != -1) // Delete Marked Region
+                ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
+            else if (ctx->text_box_cursor > 0)
+                _remove_char_at(buf, ctx->text_box_cursor--);
+            ctx->text_box_mark = -1;
+        }
+        else if (key_pressed(GLFW_KEY_DELETE))
+        {
+            if (ctx->text_box_mark != -1) // Delete Marked Region
+                ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
+            else if (ctx->text_box_cursor < len)
                 _remove_char_at(buf, ctx->text_box_cursor + 1);
+            ctx->text_box_mark = -1;
+        }
+
         // Enter
         if (key_pressed(GLFW_KEY_ENTER))
         {
@@ -363,18 +412,23 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
             res |= GUI_RES_SUBMIT;
         }
 
-        if (key_pressed(GLFW_KEY_LEFT) && ctx->text_box_cursor > 0)
-            ctx->text_box_cursor--;
-        else if (key_pressed(GLFW_KEY_RIGHT) && ctx->text_box_cursor < len)
-            ctx->text_box_cursor++;
-        else if (key_pressed(GLFW_KEY_HOME))
-            ctx->text_box_cursor = 0;
-        else if (key_pressed(GLFW_KEY_END))
+        // Cursor Movement
+        if (key_down(GLFW_KEY_LEFT_CONTROL) && key_pressed('A'))
+        {
+            ctx->text_box_mark = 0;
             ctx->text_box_cursor = len;
-
-        printf("CURSOR: %d\n", ctx->text_box_cursor);
+        }
+        
+        if (key_pressed(GLFW_KEY_LEFT))
+            _update_cursor(ctx, -1, len);
+        else if (key_pressed(GLFW_KEY_RIGHT))
+            _update_cursor(ctx, +1, len);
+        else if (key_pressed(GLFW_KEY_HOME) || key_pressed(GLFW_KEY_UP))
+            _update_cursor(ctx, -len, len);
+        else if (key_pressed(GLFW_KEY_END) || key_pressed(GLFW_KEY_DOWN))
+            _update_cursor(ctx, +len, len);
     }
-
+    
     i32 base_layer = ctx->layer;
     // Draw box
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
@@ -384,13 +438,26 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     {
         gui_draw_text(ctx, buf, rect, GUI_COLOR_TEXT, 0);
     }
-    
-    // Draw cursor
-    ctx->layer = base_layer+3;
+
+    // @Cleanup(Tyler): Lots of messy calls and rect building
     if (ctx->focus == id) {
         float text_width = ctx->get_text_width(ctx->style.font, buf, -1, ctx->style.text_height);
-        float cursor_text_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_cursor, ctx->style.text_height);
-        float diff = text_width - cursor_text_pos;
+        float cursor_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_cursor, ctx->style.text_height);
+        // Draw Mark
+        if (ctx->text_box_mark != -1)
+        {
+            ctx->layer++;
+            float mark_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_mark, ctx->style.text_height);
+            float mark_x = MIN(mark_pos, cursor_pos);
+            float mark_width = ABS(mark_pos - cursor_pos);
+            float mark_diff = text_width - mark_x;
+            Gui_Rect mark = {rect.x+(rect.w+text_width)/2-mark_diff, rect.y+(rect.h-ctx->style.text_height)/2, mark_width, ctx->style.text_height};
+            gui_draw_rect(ctx, mark, id, GUI_COLOR_MARK, 0);
+        }
+                         
+        // Draw cursor
+        ctx->layer++;
+        float diff = text_width - cursor_pos;
         
         Gui_Rect cursor = {rect.x+(rect.w+text_width)/2-diff, rect.y+(rect.h-ctx->style.text_height)/2, 2, ctx->style.text_height};
         gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
@@ -411,7 +478,10 @@ u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt,
     if (ctx->focus == id)
     {
         if (!was_focus)
+        {
+            ctx->text_box_mark = 0;
             ctx->text_box_cursor = snprintf(ctx->num_input_buf, 64, fmt, *value);
+        }
         v_buf = ctx->num_input_buf;
     }
     else

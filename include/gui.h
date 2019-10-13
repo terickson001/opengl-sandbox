@@ -32,6 +32,8 @@ typedef enum Gui_Color
     GUI_COLOR_BUTTON_FOCUS,
     GUI_COLOR_BORDER,
     GUI_COLOR_TEXT,
+    GUI_COLOR_TEXT_MARKED,
+    GUI_COLOR_MARK,
     GUI_COLOR_COUNT,
 } Gui_Color;
 
@@ -63,6 +65,8 @@ static const Gui_Style GUI_DEFAULT_STYLE = {
         {115, 115, 115, 255}, // BUTTON_FOCUS
         {25,  25,  25,  255}, // BORDER
         {230, 230, 230, 255}, // TEXT
+        {230, 230, 230, 255}, // TEXT MARKED
+        {90,  100, 225, 125}, // MARK
     },
 };
 
@@ -141,8 +145,10 @@ typedef struct Gui_Context
     Vec2f cursor;
     KeyState mouse[3];
     char text_input[128];
-
+    u64 time;
+    
     i32 text_box_cursor;
+    i32 text_box_mark;
     
     float (*get_text_width)(void *font, char const *text, int n, int size);
 
