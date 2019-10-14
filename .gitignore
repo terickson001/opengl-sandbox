@@ -2,7 +2,9 @@
 main
 
 !.gitignore
-
+    
+!todo.org
+    
 !Makefile
     
 !include

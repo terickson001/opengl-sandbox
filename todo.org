@@ -1,0 +1,7 @@
+* GUI
+** TODO Text selection with cursor
+** TODO Columns
+** TODO Absolute positioning
+
+* Renderer
+** TODO Re-work model definitions
