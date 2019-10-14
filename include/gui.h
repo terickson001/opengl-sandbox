@@ -56,7 +56,7 @@ static const Gui_Style GUI_DEFAULT_STYLE = {
     15,
     {70, 25},
     1,
-    2,
+    5,
     2,
     15,
     {

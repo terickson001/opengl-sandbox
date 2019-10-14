@@ -132,6 +132,7 @@ Gui_Rect gui_align_rect(Gui_Context *ctx, Gui_Rect bound, Gui_Rect rect, u32 opt
     bound.y += ctx->style.padding;
     bound.w -= ctx->style.padding*2;
     bound.h -= ctx->style.padding*2;
+    
     if (opt & GUI_OPT_RIGHT)
         ret.x = bound.x+bound.w - rect.w;
     else if (opt & GUI_OPT_LEFT)
@@ -472,6 +473,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
             res |= GUI_RES_SUBMIT;
         }
 
+        // @Note(Tyler): Should I change these to/add emacs-like keybinds?
         // Cursor Movement
         if (key_down(GLFW_KEY_LEFT_CONTROL) && key_pressed('A'))
         {
