@@ -99,7 +99,7 @@ Gui_Rect gui_layout_rect(Gui_Context *ctx)
     Gui_Rect rect = gui_layout_peek_rect(ctx);
     
     // Advance layout position
-    ctx->layout.pos.x += rect.w+ctx->style.padding * 2;
+    ctx->layout.pos.x += rect.w+ctx->style.spacing * 2;
 
     ctx->layout.curr_item++;
     if (ctx->layout.curr_item == ctx->layout.items)
