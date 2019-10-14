@@ -215,12 +215,6 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
 {
     Vec2f pos = {0};
 
-    /* float height = ctx->style.text_height; */
-    /* float width = ctx->get_text_width(ctx->style.font, str, -1, ctx->style.text_height); */
-
-    /* pos.x = rect.x + (rect.w - width)/2; */
-    /* pos.y = rect.y + (rect.h - height)/2; */
-
     pos.x = rect.x;
     pos.y = rect.y;
     
@@ -260,7 +254,6 @@ void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, 
             gui_draw_border(ctx, rect, id);
     }
     ctx->layer = base_layer;
-    
 }
 
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
@@ -269,7 +262,6 @@ b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
         return false;
     
     *ret = ctx->draws[ctx->draw_index++];
-    // array_set_size(&ctx->draws, array_size(ctx->draws)-1);
     return true;
 }
 
@@ -473,7 +465,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
             res |= GUI_RES_SUBMIT;
         }
 
-        // @Note(Tyler): Should I change these to/add emacs-like keybinds?
+        // @Note(Tyler): Should I change these to emacs-like keybinds?
         // Cursor Movement
         if (key_down(GLFW_KEY_LEFT_CONTROL) && key_pressed('A'))
         {
@@ -482,9 +474,36 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
         
         if (key_repeat(GLFW_KEY_LEFT))
-            _update_cursor(ctx, -1, len);
+        {
+            int change = -1;
+            if (key_down(GLFW_KEY_LEFT_CONTROL)) // Move word-wise
+            {
+                i32 new_pos = ctx->text_box_cursor;
+                while (new_pos-1 && !char_is_alphanum(buf[new_pos-1]))
+                    new_pos--;
+                while (new_pos-1 && char_is_alphanum(buf[new_pos-1]))
+                    new_pos--;
+                if (new_pos == 1 && char_is_alphanum(buf[new_pos]))
+                    new_pos--;
+                change = new_pos - ctx->text_box_cursor;
+            }
+            _update_cursor(ctx, change, len);
+        }
         else if (key_repeat(GLFW_KEY_RIGHT))
-            _update_cursor(ctx, +1, len);
+        {
+            int change = +1;
+            if (key_down(GLFW_KEY_LEFT_CONTROL)) // Move word-wise
+            {
+                i32 new_pos = ctx->text_box_cursor;
+                while (new_pos < len && !char_is_alphanum(buf[new_pos]))
+                    new_pos++;
+                while (new_pos < len && char_is_alphanum(buf[new_pos]))
+                    new_pos++;
+                change = new_pos - ctx->text_box_cursor;
+            }
+
+            _update_cursor(ctx, change, len);
+        }
         else if (key_pressed(GLFW_KEY_HOME) || key_pressed(GLFW_KEY_UP))
             _update_cursor(ctx, -len, len);
         else if (key_pressed(GLFW_KEY_END) || key_pressed(GLFW_KEY_DOWN))

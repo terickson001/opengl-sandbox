@@ -30,9 +30,9 @@ Window init_gl(int w, int h, char *title)
         fprintf(stderr, "Failed to initialize GLFW\n");
         exit(1);
     }
-
-    glfwWindowHint(GLFW_SAMPLES, 16); // 16x antialiasing
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); // OpenGL v.3.3
+    
+    glfwWindowHint(GLFW_SAMPLES, 4); // 4x antialiasing
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // OpenGL v.3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

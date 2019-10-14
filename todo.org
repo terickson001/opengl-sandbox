@@ -1,7 +1,14 @@
 * GUI
+** DONE Word-wise movement with CTRL
 ** TODO Text selection with cursor
+** TODO Store keybord input
 ** TODO Columns
 ** TODO Absolute positioning
+** TODO Windows/Containers
+*** TODO Scrolling
+** TODO Expandable Trees
+*** TODO Icons
+
 
 * Renderer
 ** TODO Re-work model definitions
