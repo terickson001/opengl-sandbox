@@ -16,10 +16,12 @@ typedef enum Gui_Res
 
 typedef enum Gui_Opt
 {
-    GUI_OPT_BORDER     = 0x1,
-    GUI_OPT_CENTER     = 0x2,
-    GUI_OPT_RIGHT      = 0x4,
-    GUI_OPT_HOLD_FOCUS = 0x8,
+    GUI_OPT_RIGHT      = 0x01,
+    GUI_OPT_LEFT       = 0x02,
+    GUI_OPT_BORDER     = 0x04,
+    GUI_OPT_HOLD_FOCUS = 0x08,
+    GUI_OPT_BOTTOM     = 0x10,
+    GUI_OPT_TOP        = 0x20,
 } Gui_Opt;
 
 typedef enum Gui_Color
@@ -32,7 +34,6 @@ typedef enum Gui_Color
     GUI_COLOR_BUTTON_FOCUS,
     GUI_COLOR_BORDER,
     GUI_COLOR_TEXT,
-    // GUI_COLOR_TEXT_MARKED,
     GUI_COLOR_MARK,
     GUI_COLOR_COUNT,
 } Gui_Color;
@@ -44,6 +45,7 @@ typedef struct Gui_Style
     Vec2f size; // Default element size
     i32 border_size;
     i32 padding;
+    i32 spacing;
     i32 thumb_size;
     Vec4f colors[GUI_COLOR_COUNT];
 } Gui_Style;
@@ -55,6 +57,7 @@ static const Gui_Style GUI_DEFAULT_STYLE = {
     {70, 25},
     1,
     2,
+    2,
     15,
     {
         {30,  30,  30,  255}, // BASE
@@ -65,8 +68,7 @@ static const Gui_Style GUI_DEFAULT_STYLE = {
         {115, 115, 115, 255}, // BUTTON_FOCUS
         {25,  25,  25,  255}, // BORDER
         {230, 230, 230, 255}, // TEXT
-        // {230, 230, 230, 255}, // TEXT MARKED
-        {90,  100, 225, 125}, // MARK
+        {90,  100, 225, 70}, // MARK
     },
 };
 
@@ -143,6 +145,7 @@ typedef struct Gui_Context
     i32 draw_index;
     
     Vec2f cursor;
+    Vec2f scroll;
     KeyState mouse[3];
     char text_input[128];
     u64 time;
@@ -157,7 +160,7 @@ typedef struct Gui_Context
 
 
 Gui_Context gui_init();
-void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos);
+void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos, Vec2f scroll);
 void gui_begin(Gui_Context *ctx, Window win);
 void gui_end(Gui_Context *ctx);
 

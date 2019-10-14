@@ -65,6 +65,7 @@ Window init_gl(int w, int h, char *title)
     glfwSetKeyCallback(window.handle, update_keystate);
     glfwSetMouseButtonCallback(window.handle, update_mousestate);
     glfwSetCursorPosCallback(window.handle, update_mousepos);
+    glfwSetScrollCallback(window.handle, update_mousescroll);
     glfwSetCharCallback(window.handle, keyboard_char_callback);
 
     glfwSetInputMode(window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -115,7 +116,7 @@ void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
     KeyState mbuttons[3] = {get_mousestate(0), get_mousestate(1), get_mousestate(2)};
-    gui_input_mouse(ctx, mbuttons, mouse_pos());
+    gui_input_mouse(ctx, mbuttons, mouse_pos(), mouse_scroll());
     gui_row(ctx, 3, (i32[]){70, -70, 0}, 35);
     gui_label(ctx, "Row 1:", 0);
     if (gui_button(ctx, "Reset", 0, 0))
@@ -123,12 +124,12 @@ void do_gui(Gui_Context *ctx, Window win)
     if (gui_button(ctx, "+5", 0, 0))
         value += 5;
     gui_label(ctx, "Row 2:", 0);
-    gui_slider(ctx, "Slider 1", &value, "%.0f", 0, 100, 1, 0);
+    gui_slider(ctx, "Slider 1", &value, "%.1f", 0, 100, 1, 0);
     if (gui_button(ctx, "-5", 0, 0))
         value -= 5;
     gui_row(ctx, 2, (i32[]){512, 0}, 35);
-    gui_text_input(ctx, "Text input", text_buf, 128, 0);
-    gui_number_input(ctx, "Number input", &value, "%.0f", 0, 100, 1, 0);
+    gui_text_input(ctx, "Text input", text_buf, 128, GUI_OPT_LEFT);
+    gui_number_input(ctx, "Number input", &value, "%.1f", 0, 100, 0, 0);
 
     gui_end(ctx);
 }
@@ -163,6 +164,7 @@ int main(void)
 {
     int width = 1024;
     int height = 768;
+    // @Note(Tyler): [$float$] creates a floating window (as opposed to tiled) in my i3 config
     Window window = init_gl(width, height, "[$float$] Hello, World");
     
     // Create VAO

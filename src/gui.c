@@ -16,10 +16,11 @@ Gui_Context gui_init()
     return ctx;
 }
 
-void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos)
+void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos, Vec2f scroll)
 {
     memcpy(ctx->mouse, buttons, sizeof(buttons[0])*3);
     ctx->cursor = pos;
+    ctx->scroll = scroll;
 }
 
 b32 gui_mouse_down(Gui_Context *ctx, i32 b)
@@ -59,6 +60,7 @@ void gui_end(Gui_Context *ctx)
 {
     // What should be done here?
     memset(ctx->text_input, 0, 128);
+    ctx->scroll = (Vec2f){0};
     ctx->layer = 0;
 }
 
@@ -84,10 +86,10 @@ Gui_Rect gui_layout_peek_rect(Gui_Context *ctx)
     if (rect.w <= 0) rect.w += ctx->layout.size.x - rect.x;
 
     // Adjust for padding
-    rect.x += ctx->style.padding;
-    rect.y += ctx->style.padding;
-    rect.w -= ctx->style.padding * 2;
-    rect.h -= ctx->style.padding * 2;
+    rect.x += ctx->style.spacing;
+    rect.y += ctx->style.spacing;
+    rect.w -= ctx->style.spacing * 2;
+    rect.h -= ctx->style.spacing * 2;
     
     return rect;
 }
@@ -108,6 +110,43 @@ Gui_Rect gui_layout_rect(Gui_Context *ctx)
     }
 
     return rect;
+}
+
+Gui_Rect gui_text_rect(Gui_Context *ctx, char *str)
+{
+    Gui_Rect rect = {0};
+
+    rect.h = ctx->style.text_height;
+    rect.w = ctx->get_text_width(ctx->style.font, str, -1, rect.h);
+
+    return rect;
+}
+
+Gui_Rect gui_align_rect(Gui_Context *ctx, Gui_Rect bound, Gui_Rect rect, u32 opt)
+{
+    Gui_Rect ret = {0};
+    ret.w = rect.w;
+    ret.h = rect.h;
+
+    bound.x += ctx->style.padding;
+    bound.y += ctx->style.padding;
+    bound.w -= ctx->style.padding*2;
+    bound.h -= ctx->style.padding*2;
+    if (opt & GUI_OPT_RIGHT)
+        ret.x = bound.x+bound.w - rect.w;
+    else if (opt & GUI_OPT_LEFT)
+        ret.x = bound.x;
+    else
+        ret.x = bound.x + (bound.w - rect.w)/2;
+
+    if (opt & GUI_OPT_BOTTOM)
+        ret.y = bound.y+bound.h - rect.h;
+    else if (opt & GUI_OPT_TOP)
+        ret.y = bound.y;
+    else
+        ret.y = bound.y + (bound.h - rect.h)/2;
+
+    return ret;
 }
 
 b32 gui_hover(Gui_Context *ctx, char *label, int icon)
@@ -175,16 +214,19 @@ void gui_draw_text(Gui_Context *ctx, char *str, Gui_Rect rect, Gui_Color color_i
 {
     Vec2f pos = {0};
 
-    float height = ctx->style.text_height;
-    float width = ctx->get_text_width(ctx->style.font, str, -1, ctx->style.text_height);
+    /* float height = ctx->style.text_height; */
+    /* float width = ctx->get_text_width(ctx->style.font, str, -1, ctx->style.text_height); */
 
-    pos.x = rect.x + (rect.w - width)/2;
-    pos.y = rect.y + (rect.h - height)/2;
+    /* pos.x = rect.x + (rect.w - width)/2; */
+    /* pos.y = rect.y + (rect.h - height)/2; */
+
+    pos.x = rect.x;
+    pos.y = rect.y;
     
     Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_TEXT);
     draw->layer = ctx->layer;
     draw->text.pos = pos;
-    draw->text.size = height;
+    draw->text.size = rect.h;
     draw->text.color_id = color_id;
     draw->text.color = ctx->style.colors[color_id];
     
@@ -232,7 +274,9 @@ b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
 
 void gui_label(Gui_Context *ctx, char *str, u32 opt)
 {
-    gui_draw_text(ctx, str, gui_layout_rect(ctx), GUI_COLOR_TEXT, opt);
+    Gui_Rect bounds = gui_layout_rect(ctx);
+    Gui_Rect text_rect = gui_text_rect(ctx, str);
+    gui_draw_text(ctx, str, gui_align_rect(ctx, bounds, text_rect, opt), GUI_COLOR_TEXT, opt);
 }
 
 u32 gui_button(Gui_Context *ctx, char *label, i32 icon, u32 opt)
@@ -255,7 +299,9 @@ u32 gui_button(Gui_Context *ctx, char *label, i32 icon, u32 opt)
     
     ctx->layer = base_layer+2;
     {
-        gui_draw_text(ctx, label, rect, GUI_COLOR_TEXT, 0);
+        Gui_Rect text_rect = gui_text_rect(ctx, label);
+        Gui_Rect text_aligned = gui_align_rect(ctx, rect, text_rect, opt);
+        gui_draw_text(ctx, label, text_aligned, GUI_COLOR_TEXT, opt);
     }
     ctx->layer = base_layer;
     
@@ -276,7 +322,12 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
         *value = min + ((ctx->cursor.x-rect.x-(tw/2.0f))/(rect.w-tw)*(max-min));
         if (step>0) *value = ((i64)((*value + step/2) / step)) * step;
     }
-
+    else if (ctx->hover == id && ctx->scroll.y)
+    {
+        float add = ctx->scroll.y * (step ? step : 1.0);
+        *value = CLAMP(*value + add, min, max);
+    }
+    
     *value = *value < min
         ? min : *value > max
         ? max : *value;
@@ -300,7 +351,9 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     {
         char val_buf[128];
         snprintf(val_buf, 128, fmt, *value);
-        gui_draw_text(ctx, val_buf, rect, GUI_COLOR_TEXT, 0);
+        Gui_Rect text_rect = gui_text_rect(ctx, val_buf);
+        Gui_Rect text_aligned = gui_align_rect(ctx, rect, text_rect, opt);
+        gui_draw_text(ctx, val_buf, text_aligned, GUI_COLOR_TEXT, opt);
     }
     ctx->layer = base_layer;
     return res;
@@ -395,7 +448,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
 
         // Backspace
-        if (key_pressed(GLFW_KEY_BACKSPACE))
+        if (key_repeat(GLFW_KEY_BACKSPACE))
         {
             if (ctx->text_box_mark != -1) // Delete Marked Region
                 ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
@@ -403,7 +456,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
                 _remove_char_at(buf, ctx->text_box_cursor--);
             ctx->text_box_mark = -1;
         }
-        else if (key_pressed(GLFW_KEY_DELETE))
+        else if (key_repeat(GLFW_KEY_DELETE))
         {
             if (ctx->text_box_mark != -1) // Delete Marked Region
                 ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
@@ -426,9 +479,9 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
             ctx->text_box_cursor = len;
         }
         
-        if (key_pressed(GLFW_KEY_LEFT))
+        if (key_repeat(GLFW_KEY_LEFT))
             _update_cursor(ctx, -1, len);
-        else if (key_pressed(GLFW_KEY_RIGHT))
+        else if (key_repeat(GLFW_KEY_RIGHT))
             _update_cursor(ctx, +1, len);
         else if (key_pressed(GLFW_KEY_HOME) || key_pressed(GLFW_KEY_UP))
             _update_cursor(ctx, -len, len);
@@ -442,24 +495,27 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
 
     // Draw text
     ctx->layer = base_layer+2;
+    Gui_Rect text_rect = gui_text_rect(ctx, buf);
+    text_rect = gui_align_rect(ctx, rect, text_rect, opt);
     {
-        gui_draw_text(ctx, buf, rect, GUI_COLOR_TEXT, 0);
+        gui_draw_text(ctx, buf, text_rect, GUI_COLOR_TEXT, opt);
     }
 
-    // @Cleanup(Tyler): Lots of messy calls and rect building
+    // @Cleanup(Tyler): Simplify text_width calculation?
     if (ctx->focus == id) {
-        float text_width = ctx->get_text_width(ctx->style.font, buf, -1, ctx->style.text_height);
+        float text_width = text_rect.w;
         float cursor_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_cursor, ctx->style.text_height);
+        
         // Draw Mark
         if (ctx->text_box_mark != -1)
         {
             // @Todo(Tyler): Fix visual artefacts due to mark width
             ctx->layer++;
-            float mark_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_mark, ctx->style.text_height);
-            float mark_x = MIN(mark_pos, cursor_pos);
+            float mark_pos   = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_mark, ctx->style.text_height);
+            float mark_x     = MIN(mark_pos, cursor_pos); // Resolve cursor behind mark
             float mark_width = ABS(mark_pos - cursor_pos);
-            float mark_diff = text_width - mark_x;
-            Gui_Rect mark = {rect.x+(rect.w+text_width)/2-mark_diff, rect.y+(rect.h-ctx->style.text_height)/2, mark_width, ctx->style.text_height};
+            float mark_diff  = text_width - mark_x;
+            Gui_Rect mark    = {text_rect.x+text_rect.w-mark_diff, text_rect.y, mark_width, text_rect.h};
             gui_draw_rect(ctx, mark, id, GUI_COLOR_MARK, 0);
         }
                          
@@ -467,7 +523,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         ctx->layer++;
         float diff = text_width - cursor_pos;
         
-        Gui_Rect cursor = {rect.x+(rect.w+text_width)/2-diff, rect.y+(rect.h-ctx->style.text_height)/2, 2, ctx->style.text_height};
+        Gui_Rect cursor = {text_rect.x+text_rect.w-diff, text_rect.y, 2, text_rect.h};
         gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
     }
     ctx->layer = base_layer;
@@ -494,6 +550,11 @@ u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt,
     }
     else
     {
+        if (ctx->hover == id && ctx->scroll.y)
+        {
+            float add = ctx->scroll.y * (step ? step : 1.0);
+            *value = CLAMP(*value + add, min, max);
+        }
         // Show value if not active
         char temp_buf[64];
         snprintf(temp_buf, 64, fmt, *value);

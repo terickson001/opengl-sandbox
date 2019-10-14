@@ -10,6 +10,7 @@ typedef enum KeyState
     KeyState_NONE = 0,
     KeyState_PRESSED,
     KeyState_DOWN,
+    KeyState_REPEAT,
     KeyState_RELEASED,
     KeyState_UP
 } KeyState;
@@ -25,12 +26,15 @@ void keyboard_text_unhook();
 
 
 void update_mousepos(GLFWwindow *window, double x, double y);
+void update_mousescroll(GLFWwindow *window, double xoff, double yoff);
 void update_mousestate(GLFWwindow *window, int button, int action, int mods);
 KeyState get_mousestate(int m);
 b32 mouse_down(int m);
 b32 mouse_pressed(int m);
+b32 key_repeat(int k);
 b32 mouse_released(int m);
 Vec2f mouse_pos();
 void mouse_set_pos(Vec2f pos);
+Vec2f mouse_scroll();
 
 #endif // _KEYBOARD_H

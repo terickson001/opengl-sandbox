@@ -7,7 +7,6 @@ typedef struct Keyboard
 {
     KeyState keys[316];
     char *text_buffer;
-    // u32 text_buffer_index;
 } Keyboard;
 static Keyboard KEYBOARD = {0};
 
@@ -24,6 +23,8 @@ void update_keystate(GLFWwindow *window, int keycode, int scancode, int action, 
         KEYBOARD.keys[code] = KeyState_PRESSED;
     else if (action == GLFW_RELEASE)
         KEYBOARD.keys[code] = KeyState_RELEASED;
+    else if (action == GLFW_REPEAT)
+        KEYBOARD.keys[code] = KeyState_REPEAT;
 }
 
 KeyState get_keystate(int k)
@@ -36,7 +37,7 @@ KeyState get_keystate(int k)
     }
 
     KeyState ret = KEYBOARD.keys[code];
-    if (ret == KeyState_PRESSED)
+    if (ret == KeyState_PRESSED || ret == KeyState_REPEAT)
         KEYBOARD.keys[code] = KeyState_DOWN;
     else if (ret == KeyState_RELEASED)
         KEYBOARD.keys[code] = KeyState_UP;
@@ -47,7 +48,7 @@ KeyState get_keystate(int k)
 b32 key_down(int k)
 {
     KeyState state = get_keystate(k);
-    if (state == KeyState_PRESSED || state == KeyState_DOWN)
+    if (KeyState_PRESSED <= state && state <= KeyState_REPEAT)
         return true;
     
     int code = k-32;
@@ -59,6 +60,17 @@ b32 key_pressed(int k)
 {
     KeyState state = get_keystate(k);
     if (state == KeyState_PRESSED)
+        return true;
+    
+    int code = k-32;
+    KEYBOARD.keys[code] = state;
+    return false;
+}
+
+b32 key_repeat(int k)
+{
+    KeyState state = get_keystate(k);
+    if (state == KeyState_PRESSED || state == KeyState_REPEAT)
         return true;
     
     int code = k-32;
@@ -80,13 +92,11 @@ b32 key_released(int k)
 void keyboard_text_hook(char *text_buffer)
 {
     KEYBOARD.text_buffer = text_buffer;
-    // KEYBOARD.text_buffer_index = 0;
 }
 
 void keyboard_text_unhook()
 {
     KEYBOARD.text_buffer = 0;
-    // KEYBOARD.text_buffer_index = 0;
 }
 
 void keyboard_char_callback(GLFWwindow *window, u32 codepoint)
@@ -100,6 +110,7 @@ typedef struct Mouse
 {
     KeyState buttons[8];
     Vec2f pos;
+    Vec2f scroll;
 } Mouse;
 static Mouse MOUSE = {0};
 
@@ -107,6 +118,12 @@ void update_mousepos(GLFWwindow *window, double x, double y)
 {
     MOUSE.pos.x = x;
     MOUSE.pos.y = y;
+}
+
+void update_mousescroll(GLFWwindow *window, double xoff, double yoff)
+{
+    MOUSE.scroll.x += xoff;
+    MOUSE.scroll.y += yoff;
 }
 
 void update_mousestate(GLFWwindow *window, int button, int action, int mods)
@@ -178,4 +195,11 @@ Vec2f mouse_pos()
 void mouse_set_pos(Vec2f pos)
 {
     MOUSE.pos = pos;
+}
+
+Vec2f mouse_scroll()
+{
+    Vec2f ret = MOUSE.scroll;
+    MOUSE.scroll = (Vec2f){0};
+    return ret;
 }
