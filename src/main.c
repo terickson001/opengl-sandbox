@@ -1,4 +1,3 @@
-
 #define _LIB_IMPLEMENTATION
 #include "lib.h"
 
@@ -9,20 +8,20 @@
 #include <GLFW/glfw3.h>
 #include <GL/gl.h>
 
-#include "glmath2.h"
-#include "shaders.h"
-#include "image.h"
-#include "window.h"
 #include "camera.h"
+#include "entity.h"
+#include "glmath2.h"
+#include "gui.h"
+#include "image.h"
+#include "keyboard.h"
 #include "model.h"
+#include "primitive.h"
+#include "renderer.h"
+#include "shaders.h"
+#include "sprite.h"
 #include "text.h"
 #include "texture.h"
-#include "entity.h"
-#include "primitive.h"
-#include "keyboard.h"
-#include "sprite.h"
-#include "gui.h"
-#include "renderer.h"
+#include "window.h"
 
 Window init_gl(int w, int h, char *title)
 {

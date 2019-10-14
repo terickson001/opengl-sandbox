@@ -385,7 +385,14 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
 
         if (*ctx->text_input)
+        {
+            if (ctx->text_box_mark != -1)
+            {
+                ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
+                ctx->text_box_mark = -1;
+            }
             ctx->text_box_cursor += _insert_string_at(buf, ctx->text_input, ctx->text_box_cursor, buf_size-1);
+        }
 
         // Backspace
         if (key_pressed(GLFW_KEY_BACKSPACE))
@@ -446,6 +453,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         // Draw Mark
         if (ctx->text_box_mark != -1)
         {
+            // @Todo(Tyler): Fix visual artefacts due to mark width
             ctx->layer++;
             float mark_pos = ctx->get_text_width(ctx->style.font, buf, ctx->text_box_mark, ctx->style.text_height);
             float mark_x = MIN(mark_pos, cursor_pos);
