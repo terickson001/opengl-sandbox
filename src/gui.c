@@ -483,7 +483,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
                     new_pos--;
                 while (new_pos-1 && char_is_alphanum(buf[new_pos-1]))
                     new_pos--;
-                if (new_pos == 1 && char_is_alphanum(buf[new_pos]))
+                if (new_pos == 1 && char_is_alphanum(buf[new_pos])) // @Note(Tyler): Is this the cleanest way to accomplish this?
                     new_pos--;
                 change = new_pos - ctx->text_box_cursor;
             }

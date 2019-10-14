@@ -1,7 +1,7 @@
 * GUI
 ** DONE Word-wise movement with CTRL
 ** TODO Text selection with cursor
-** TODO Store keybord input
+** TODO Store keyboard input
 ** TODO Columns
 ** TODO Absolute positioning
 ** TODO Windows/Containers
@@ -12,3 +12,4 @@
 
 * Renderer
 ** TODO Re-work model definitions
+** TODO Configurable text color
