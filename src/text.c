@@ -74,9 +74,12 @@ Font load_font(const char *name)
     LodePNGState state;
 
     glActiveTexture(GL_TEXTURE0);
+
+    font.texture.info.width = 96;
+    font.texture.info.height = 96;
     
-    glGenTextures(1, &font.texture);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture);
+    glGenTextures(1, &font.texture.diffuse);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, font.texture.diffuse);
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 96, 96, 96);
 
     char filepath[512];
@@ -119,7 +122,7 @@ Font load_font(const char *name)
     font.shader = init_shaders("./shader/text.vs", 0, "./shader/text.fs");
 
     // Initialize uniform IDs
-    font.uniform = glGetUniformLocation(font.shader.id, "texture_sampler");
+    // font.uniform = glGetUniformLocation(font.shader.id, "texture_sampler");
 
     snprintf(filepath, 512, "%s_msdfmetrics", name);
     font.info = load_msdf_metrics(filepath);
@@ -154,7 +157,7 @@ float get_text_widthn(Font font, const char *text, int n, int size)
     return width;
 }
 
-void buffer_text(Renderer_Text *r, Font font, const char *text, float x, float y, int size, int layer)
+void buffer_text(Renderer_2D *r, Font font, const char *text, float x, float y, int size, int layer)
 {
     if (!text)
         return;
@@ -189,21 +192,21 @@ void buffer_text(Renderer_Text *r, Font font, const char *text, float x, float y
             ux1 = metrics.x1 / font.info.size;
             uy1 = metrics.y1 / font.info.size;
             
-            array_append(&r->layers[layer].vertices, init_vec2f(x0, y0));
-            array_append(&r->layers[layer].vertices, init_vec2f(x1, y0));
-            array_append(&r->layers[layer].vertices, init_vec2f(x0, y1));
-
-            array_append(&r->layers[layer].vertices, init_vec2f(x1, y1));
-            array_append(&r->layers[layer].vertices, init_vec2f(x0, y1));
-            array_append(&r->layers[layer].vertices, init_vec2f(x1, y0));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x0, y0));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x1, y0));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x0, y1));
             
-            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy0, *text-32));
-            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy0, *text-32));
-            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy1, *text-32));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x1, y1));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x0, y1));
+            array_append(&r->layers[layer].text_vertices, init_vec2f(x1, y0));
             
-            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy1, *text-32));
-            array_append(&r->layers[layer].uvs, init_vec3f(ux0, uy1, *text-32));
-            array_append(&r->layers[layer].uvs, init_vec3f(ux1, uy0, *text-32));
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux0, uy0, *text-32));
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux1, uy0, *text-32));
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux0, uy1, *text-32));
+            
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux1, uy1, *text-32));
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux0, uy1, *text-32));
+            array_append(&r->layers[layer].text_uvs, init_vec3f(ux1, uy0, *text-32));
             
             x += metrics.advance*scale;
         }
@@ -216,7 +219,7 @@ void destroy_font(Font font)
     glDeleteBuffers(1, &font.vbuff);
     glDeleteBuffers(1, &font.uvbuff);
 
-    glDeleteTextures(1, &font.texture);
+    // glDeleteTextures(1, &font.texture.diffuse);
 
     glDeleteProgram(font.shader.id);
 }

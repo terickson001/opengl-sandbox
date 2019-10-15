@@ -95,8 +95,8 @@ void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color 
     vertices[4] = init_vec2f(x+w, y);
     vertices[5] = init_vec2f(x+w, y+h);
 
-    Vec2f c_uv = texture_pallete_index(gui_pallete, color_id);
-    f32 uv_size = 1/(f32)gui_pallete.info.width;
+    Vec2f c_uv = texture_pallete_index(r->tex, color_id);
+    f32 uv_size = 1/(f32)r->tex.info.width;
     uvs[0] = c_uv;
     uvs[1] = init_vec2f(c_uv.u + uv_size, c_uv.v + uv_size);
     uvs[2] = init_vec2f(c_uv.u,           c_uv.v + uv_size);
@@ -134,10 +134,10 @@ void do_gui(Gui_Context *ctx, Window win)
     gui_end(ctx);
 }
 
-void draw_gui(Gui_Context *ctx, Renderer_2D *r2d, Renderer_Text *rtext)
+void draw_gui(Gui_Context *ctx, Renderer_2D *r2d)
 {
     renderer2d_begin(r2d);
-    renderer_text_begin(rtext);
+    // renderer_text_begin(rtext);
     
     Gui_Draw draw;
     while (gui_next_draw(ctx, &draw))
@@ -150,7 +150,7 @@ void draw_gui(Gui_Context *ctx, Renderer_2D *r2d, Renderer_Text *rtext)
                       draw.layer, draw.rect.color_id);
             break;
         case GUI_DRAW_TEXT:
-            buffer_text(rtext, *(Font *)ctx->style.font, draw.text.text,
+            buffer_text(r2d, *(Font *)ctx->style.font, draw.text.text,
                        draw.text.pos.x, 768-draw.text.pos.y-draw.text.size,
                        draw.text.size, draw.layer);
             free(draw.text.text); // Robustness(Tyler): Should this be done in gui_begin or similar?
@@ -203,10 +203,10 @@ int main(void)
     keyboard_text_hook(gui_context.text_input);
     
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
-    Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"));
-    
     Font font = load_font("./res/font/OpenSans-Regular");
-    Renderer_Text rtext = make_renderer_text(font.shader);
+    Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"), font.shader, gui_pallete, font.texture);
+    
+    // Renderer_Text rtext = make_renderer_text(font.shader);
     gui_context.style.font = &font;
 
 
@@ -257,20 +257,14 @@ int main(void)
         draw_entity(shader, suzanne_2);
 
         do_gui(&gui_context, window);
-        draw_gui(&gui_context, &r2d, &rtext);
+        draw_gui(&gui_context, &r2d);
         // draw_entity_2d(font.shader, adventurer); // TODO(Tyler): Use Renderer_2D (How to switch textures mid-layer?)
         float fps_w = get_text_width(font, fps_str, 24);
-        buffer_text(&rtext, font, fps_str, width-fps_w, height-24, 24, 3);
+        buffer_text(&r2d, font, fps_str, width-fps_w, height-24, 24, 3);
 
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
-        for (int i = 0; i < RENDERER_MAX_DEPTH; i++)
-        {
-            if (array_size(r2d.layers[i].vertices))
-                renderer2d_draw(&r2d, i, gui_pallete.diffuse);
-            if (array_size(rtext.layers[i].vertices))
-                renderer_text_draw(&rtext, i, font.texture);
-        }
+        renderer2d_draw(&r2d);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
 
