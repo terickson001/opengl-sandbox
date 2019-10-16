@@ -132,6 +132,16 @@ typedef struct Gui_Layout
     i32 curr_item;
 } Gui_Layout;
 
+typedef struct Gui_Text_State
+{
+    i32 cursor;
+    i32 mark;
+    
+    // @Note(Tyler): Character offset for one-line text box
+    //               Line offset for multi-line text box (WIP)
+    i32 offset;
+} Gui_Text_State;
+
 typedef struct Gui_Context
 {
     u64 hover;
@@ -149,9 +159,8 @@ typedef struct Gui_Context
     KeyState mouse[3];
     char text_input[128];
     u64 time;
-    
-    i32 text_box_cursor;
-    i32 text_box_mark;
+
+    Gui_Text_State text_box;
     
     float (*get_char_width)(void *font, char c, int size);
 
