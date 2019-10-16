@@ -58,7 +58,7 @@ Field_Info load_msdf_metrics(const char *filepath)
         info.metrics[i] = m;
         skip_space(&file, true);
     }
-    
+
     return info;
 }
 
@@ -118,16 +118,18 @@ Font load_font(const char *name)
     glGenBuffers(1, &font.vbuff);
     glGenBuffers(1, &font.uvbuff);
 
-    // Initialize shader
-    font.shader = init_shaders("./shader/text.vs", 0, "./shader/text.fs");
-
-    // Initialize uniform IDs
-    // font.uniform = glGetUniformLocation(font.shader.id, "texture_sampler");
-
     snprintf(filepath, 512, "%s_msdfmetrics", name);
     font.info = load_msdf_metrics(filepath);
-    
+
     return font;
+}
+
+force_inline float get_char_width(Font font, char c, int size)
+{
+    float scale = (float)size / (font.info.ascent - font.info.descent);
+    if (32 <= c && c < 128)
+        return font.info.metrics[c-32].advance * scale;
+    return 0;
 }
 
 float get_text_width(Font font, const char *text, int size)
@@ -219,7 +221,5 @@ void destroy_font(Font font)
     glDeleteBuffers(1, &font.vbuff);
     glDeleteBuffers(1, &font.uvbuff);
 
-    // glDeleteTextures(1, &font.texture.diffuse);
-
-    glDeleteProgram(font.shader.id);
+    glDeleteTextures(1, &font.texture.diffuse);
 }

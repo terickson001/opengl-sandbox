@@ -27,14 +27,13 @@ typedef struct Field_Info
 typedef struct Font
 {
     GLuint vbuff, uvbuff;
-    Shader shader;
-    // GLuint uniform;
     Texture texture;
 
     Field_Info info;
 } Font;
     
 Font load_font(const char *directory);
+float get_char_width(Font font, char c, int size);
 float get_text_width(Font font, const char *text, int size);
 float get_text_widthn(Font font, const char *text, int n, int size);
 void buffer_text(Renderer_2D *r, Font font, const char *text, float x, float y, int size, int layer);

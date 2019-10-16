@@ -1,6 +1,7 @@
 * GUI
 ** DONE Word-wise movement with CTRL
-** TODO Text selection with cursor
+** DONE Text selection with cursor
+** TODO Blinking Cursor for text-inputs
 ** TODO Clipping planes
 ** TODO Scrolling text for text-inputs
 ** TODO Store keyboard input

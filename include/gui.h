@@ -74,8 +74,8 @@ static const Gui_Style GUI_DEFAULT_STYLE = {
 
 typedef struct Gui_Rect
 {
-    i32 x, y;
-    i32 w, h;
+    f32 x, y;
+    f32 w, h;
 } Gui_Rect;
 
 typedef enum Gui_Draw_Kind
@@ -153,7 +153,7 @@ typedef struct Gui_Context
     i32 text_box_cursor;
     i32 text_box_mark;
     
-    float (*get_text_width)(void *font, char const *text, int n, int size);
+    float (*get_char_width)(void *font, char c, int size);
 
     char num_input_buf[64];
 } Gui_Context;

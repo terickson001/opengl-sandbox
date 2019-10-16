@@ -11,7 +11,7 @@ void main()
 {
     vec2 position_homogeneous = position.xy - (resolution/2);
     position_homogeneous /= (resolution/2);
-    gl_Position = vec4(position_homogeneous, position.z/1024, 1);
+    gl_Position = vec4(position_homogeneous, 0, 1);
 
     uv = vertex_uv;
 }

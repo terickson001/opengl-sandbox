@@ -74,9 +74,9 @@ Window init_gl(int w, int h, char *title)
     return window;
 }
 
-float gui_get_text_width(void *font, char const *text, int n, int size)
+float gui_get_char_width(void *font, char c, int size)
 {
-    return get_text_widthn(*(Font *)font, text, n, size);
+    return get_char_width(*(Font *)font, c, size);
 }
 
 static Texture gui_pallete;
@@ -164,7 +164,8 @@ int main(void)
 {
     int width = 1024;
     int height = 768;
-    // @Note(Tyler): [$float$] creates a floating window (as opposed to tiled) in my i3 config
+    
+    // @Note(Tyler): `[$float$]` creates a floating window (as opposed to tiled) in my i3 config
     Window window = init_gl(width, height, "[$float$] Hello, World");
     
     // Create VAO
@@ -199,12 +200,14 @@ int main(void)
 
 
     Gui_Context gui_context = gui_init();
-    gui_context.get_text_width = &gui_get_text_width;
+    gui_context.get_char_width = &gui_get_char_width;
     keyboard_text_hook(gui_context.text_input);
     
     gui_pallete = texture_pallete(gui_context.style.colors, GUI_COLOR_COUNT, false);
     Font font = load_font("./res/font/OpenSans-Regular");
-    Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"), font.shader, gui_pallete, font.texture);
+    Renderer_2D r2d = make_renderer2d(init_shaders("./shader/vert2d.vs", 0, "./shader/frag2d.fs"),
+                                      init_shaders("./shader/text.vs", 0, "./shader/text.fs"),
+                                      gui_pallete, font.texture);
     
     // Renderer_Text rtext = make_renderer_text(font.shader);
     gui_context.style.font = &font;
