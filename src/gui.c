@@ -409,7 +409,7 @@ int _remove_string_between(char *str, int idx_start, int idx_end)
     }
 
     memcpy(str+idx_start, str+idx_end, len-idx_end);
-    memset(str+idx_start+(len-idx_end), 0, idx_start+idx_end);
+    memset(str+idx_start+(len-idx_end), 0, idx_end);
 
     return ret;
 }
@@ -432,6 +432,28 @@ void _update_cursor(Gui_Context *ctx, int change, int max)
 
     if (ctx->text_box_cursor == ctx->text_box_mark)
         ctx->text_box_mark = -1;
+}
+
+i32 _word_beg(Gui_Context *ctx, char *buf, i32 len)
+{
+    i32 index = ctx->text_box_cursor;
+    while (index-1 && !char_is_alphanum(buf[index-1]))
+        index--;
+    while (index-1 && char_is_alphanum(buf[index-1]))
+        index--;
+    if (index == 1 && char_is_alphanum(buf[index]))
+        index--;
+    return MAX(index, 0);
+}
+
+i32 _word_end(Gui_Context *ctx, char *buf, i32 len)
+{
+    i32 index = ctx->text_box_cursor;
+    while (index < len && !char_is_alphanum(buf[index]))
+        index++;
+    while (index < len && char_is_alphanum(buf[index]))
+        index++;
+    return MIN(index, len);
 }
 
 u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 opt)
@@ -468,15 +490,29 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         if (key_repeat(GLFW_KEY_BACKSPACE))
         {
             if (ctx->text_box_mark != -1) // Delete Marked Region
+            {
                 ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
+            }
+            else if (key_down(GLFW_KEY_LEFT_CONTROL))
+            {
+                i32 word_index = _word_beg(ctx, buf, len);
+                ctx->text_box_cursor -= _remove_string_between(buf, word_index, ctx->text_box_cursor);
+            }
             else if (ctx->text_box_cursor > 0)
+            {
                 _remove_char_at(buf, ctx->text_box_cursor--);
+            }
             ctx->text_box_mark = -1;
         }
         else if (key_repeat(GLFW_KEY_DELETE))
         {
             if (ctx->text_box_mark != -1) // Delete Marked Region
                 ctx->text_box_cursor -= _remove_string_between(buf, ctx->text_box_mark, ctx->text_box_cursor);
+            else if (key_down(GLFW_KEY_LEFT_CONTROL))
+            {
+                i32 word_index = _word_end(ctx, buf, len);
+                _remove_string_between(buf, ctx->text_box_cursor, word_index);
+            }
             else if (ctx->text_box_cursor < len)
                 _remove_char_at(buf, ctx->text_box_cursor + 1);
             ctx->text_box_mark = -1;
@@ -501,31 +537,14 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         {
             int change = -1;
             if (key_down(GLFW_KEY_LEFT_CONTROL)) // Move word-wise
-            {
-                i32 new_pos = ctx->text_box_cursor;
-                while (new_pos-1 && !char_is_alphanum(buf[new_pos-1]))
-                    new_pos--;
-                while (new_pos-1 && char_is_alphanum(buf[new_pos-1]))
-                    new_pos--;
-                if (new_pos == 1 && char_is_alphanum(buf[new_pos])) // @Note(Tyler): Is this the cleanest way to accomplish this?
-                    new_pos--;
-                change = new_pos - ctx->text_box_cursor;
-            }
+                change = _word_beg(ctx, buf, len) - ctx->text_box_cursor;
             _update_cursor(ctx, change, len);
         }
         else if (key_repeat(GLFW_KEY_RIGHT))
         {
             int change = +1;
             if (key_down(GLFW_KEY_LEFT_CONTROL)) // Move word-wise
-            {
-                i32 new_pos = ctx->text_box_cursor;
-                while (new_pos < len && !char_is_alphanum(buf[new_pos]))
-                    new_pos++;
-                while (new_pos < len && char_is_alphanum(buf[new_pos]))
-                    new_pos++;
-                change = new_pos - ctx->text_box_cursor;
-            }
-
+                change = _word_end(ctx, buf, len) - ctx->text_box_cursor;
             _update_cursor(ctx, change, len);
         }
         else if (key_pressed(GLFW_KEY_HOME) || key_pressed(GLFW_KEY_UP))
@@ -539,39 +558,29 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     text_rect = gui_text_rect(ctx, buf);
     text_rect = gui_align_rect(ctx, rect, text_rect, opt);
 
-    if (ctx->focus == id && len > 0)
+    if (ctx->focus == id && gui_mouse_down(ctx, 0) && len > 0)
     {
+        float pos = text_rect.x;
+        float cw = 0;
+        int index = 0;
+        while (index < len+1 && pos < ctx->cursor.x)
+        {
+            cw = ctx->get_char_width(ctx->style.font, buf[index++], ctx->style.text_height);
+            pos += cw;
+        }
+        index = MAX(index-1, 0);
+        if (cw && pos - ctx->cursor.x < (ctx->cursor.x - (pos-cw)) && index < len)
+            index++;
+
+
         if (gui_mouse_pressed(ctx, 0))
         {
-            // Unset mark, Set cursor at mouse position
-            float pos = text_rect.x;
-            float cw = 0;
-            int index = 0;
-            while (index < len+1 && pos < ctx->cursor.x)
-            {
-                cw = ctx->get_char_width(ctx->style.font, buf[index++], ctx->style.text_height);
-                pos += cw;
-            }
-            if (cw && pos - ctx->cursor.x < (ctx->cursor.x - (pos-cw)) && index < len)
-                index++;
-            ctx->text_box_cursor = MAX(index-1, 0);
+            ctx->text_box_cursor = index;
             ctx->text_box_mark = -1;
         }
-        else if (gui_mouse_down(ctx, 0))
+        else
         {
             // Set cursor at mouse position, leaving mark
-
-            float pos = text_rect.x;
-            float cw = 0;
-            int index = 0;
-            while (index < len+1 && pos < ctx->cursor.x)
-            {
-                cw = ctx->get_char_width(ctx->style.font, buf[index++], ctx->style.text_height);
-                pos += cw;
-            }
-            if (cw && pos - ctx->cursor.x < (ctx->cursor.x - (pos-cw)) && index < len)
-                index++;
-            index = MAX(index-1, 0);
             if (ctx->text_box_mark == -1 && ctx->text_box_cursor != index)
                 ctx->text_box_mark = ctx->text_box_cursor;
             ctx->text_box_cursor = index;

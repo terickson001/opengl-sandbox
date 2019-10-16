@@ -16,3 +16,4 @@
 * Renderer
 ** TODO Re-work model definitions
 ** TODO Configurable text color
+** TODO Shadow Mapping
