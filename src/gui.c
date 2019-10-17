@@ -423,8 +423,22 @@ void _update_cursor(Gui_Context *ctx, int change, int max)
 {
     if (key_down(GLFW_KEY_LEFT_SHIFT) && ctx->text_box.mark == -1)
         ctx->text_box.mark = ctx->text_box.cursor;
-    else if (!key_down(GLFW_KEY_LEFT_SHIFT))
+    else if (!key_down(GLFW_KEY_LEFT_SHIFT) && ctx->text_box.mark != -1)
+    {
+        i32 mark = ctx->text_box.mark;
         ctx->text_box.mark = -1;
+        
+        if (change == -1)
+        {
+            ctx->text_box.cursor = MIN(ctx->text_box.cursor, mark);
+            return;
+        }
+        else if (change == 1)
+        {
+            ctx->text_box.cursor = MAX(ctx->text_box.cursor, mark);
+            return;
+        }
+    }
 
     ctx->text_box.cursor += change;
     ctx->text_box.cursor = CLAMP(ctx->text_box.cursor, 0, max);
