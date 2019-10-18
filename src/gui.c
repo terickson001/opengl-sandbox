@@ -352,7 +352,7 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
 
     i32 base_layer = ctx->layer;
     // Draw slider
-    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
+    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt ^ GUI_OPT_BORDER);
 
     // Draw thumb
     ctx->layer = base_layer+2;
@@ -475,7 +475,7 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
 
     Gui_Rect rect = gui_layout_rect(ctx);
     b32 was_focus = ctx->focus == id;
-    gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
+    gui_update_focus(ctx, rect, id, opt ^ GUI_OPT_HOLD_FOCUS);
 
     u32 res = 0;
     Gui_Rect text_rect;
@@ -703,7 +703,7 @@ u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt,
     u64 id = gui_id(label, strlen(label));
     Gui_Rect rect = gui_layout_peek_rect(ctx);
     b32 was_focus = ctx->focus == id;
-    gui_update_focus(ctx, rect, id, opt | GUI_OPT_HOLD_FOCUS);
+    gui_update_focus(ctx, rect, id, opt ^ GUI_OPT_HOLD_FOCUS);
 
     char *v_buf;
     if (ctx->focus == id)
