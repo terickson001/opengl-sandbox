@@ -603,8 +603,9 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
 
     i32 base_layer = ctx->layer;
     // Draw box
-    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt | GUI_OPT_BORDER);
+    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt ^ GUI_OPT_BORDER);
 
+    // Scrolling Text
     float cursor_pos = 0;
     float offset_x = 0;
     if (ctx->focus == id)
@@ -683,11 +684,14 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
 
         // Draw cursor
-        ctx->layer++;
-        float diff = text_width - cursor_pos;
+        if (sin(ctx->time*5) > 0) // Blink
+        {
+            ctx->layer++;
+            float diff = text_width - cursor_pos;
 
-        Gui_Rect cursor = {text_rect.x+text_rect.w-diff, text_rect.y, 2, text_rect.h};
-        gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
+            Gui_Rect cursor = {text_rect.x+text_rect.w-diff, text_rect.y, 2, text_rect.h};
+            gui_draw_rect(ctx, cursor, id, GUI_COLOR_TEXT, 0);
+        }
     }
     ctx->layer = base_layer;
 

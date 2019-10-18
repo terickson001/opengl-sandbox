@@ -158,7 +158,7 @@ typedef struct Gui_Context
     Vec2f scroll;
     KeyState mouse[3];
     char text_input[128];
-    u64 time;
+    f64 time;
 
     Gui_Text_State text_box;
     

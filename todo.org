@@ -2,7 +2,7 @@
 ** DONE Word-wise movement with CTRL
 ** DONE Text selection with cursor
 ** TODO Clipboard Support
-** TODO Blinking Cursor for text-inputs
+** DONE Blinking Cursor for text-inputs
 ** TODO Clipping planes
 ** DONE Scrolling text for text-inputs
 ** TODO Store keyboard input

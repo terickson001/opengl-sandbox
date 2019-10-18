@@ -223,7 +223,7 @@ int main(void)
     double last_time = glfwGetTime();
     double current_time;
     float dt = 0;
-
+    
     // Initialize camera
     Vec3f cam_pos = init_vec3f(4, 4, 4);
     Camera camera = make_camera(cam_pos, vec3f_scale(cam_pos, -1), 3.0f, 0.15f);
@@ -278,6 +278,7 @@ int main(void)
         dt = (float)(current_time - last_time);
         last_time = current_time;
 
+        gui_context.time += dt;
         
         nb_frames++;
         accum_time += dt;
