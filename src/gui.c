@@ -478,9 +478,9 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     gui_update_focus(ctx, rect, id, opt ^ GUI_OPT_HOLD_FOCUS);
 
     u32 res = 0;
+    i32 cursor_start = ctx->text_box.cursor;
     Gui_Rect text_rect;
     int len = strlen(buf);
-
     if (ctx->focus == id)
     {
         if (!was_focus)
@@ -565,8 +565,6 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
             _update_cursor(ctx, -len, len);
         else if (key_pressed(GLFW_KEY_END) || key_pressed(GLFW_KEY_DOWN))
             _update_cursor(ctx, +len, len);
-
-
     }
 
     text_rect = gui_text_rect(ctx, buf);
@@ -661,6 +659,11 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
     }
 
+    if (cursor_start != ctx->text_box.cursor)
+    {
+        ctx->text_box.cursor_last_updated = ctx->time;
+    }
+    
     // Draw text
     ctx->layer = base_layer+2;
     {
@@ -684,7 +687,8 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
 
         // Draw cursor
-        if (sin(ctx->time*5) > 0) // Blink
+        if (sin(ctx->time*5) > 0 || // Blink
+            ctx->time - ctx->text_box.cursor_last_updated < 0.4) // Display if recently updated
         {
             ctx->layer++;
             float diff = text_width - cursor_pos;

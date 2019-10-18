@@ -136,9 +136,9 @@ typedef struct Gui_Text_State
 {
     i32 cursor;
     i32 mark;
-    
+    f64 cursor_last_updated;
     // @Note(Tyler): Character offset for one-line text box
-    //               Line offset for multi-line text box (WIP)
+    //               Line offset for multi-line text box (Eventually)
     i32 offset;
 } Gui_Text_State;
 
