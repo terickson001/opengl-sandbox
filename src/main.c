@@ -110,27 +110,36 @@ void draw_rect(Renderer_2D *r, i32 x, i32 y, i32 w, i32 h, i32 layer, Gui_Color 
 }
 
 
+// @Temp(Tyler)
 static f32 value = 50;
 static char text_buf[128];
+static Gui_Window gui_win, gui_win2;
 void do_gui(Gui_Context *ctx, Window win)
 {
     gui_begin(ctx, win);
     KeyState mbuttons[3] = {get_mousestate(0), get_mousestate(1), get_mousestate(2)};
     gui_input_mouse(ctx, mbuttons, mouse_pos(), mouse_scroll());
-    gui_row(ctx, 3, (i32[]){70, -70, 0}, 35);
-    gui_label(ctx, "Row 1:", 0);
-    if (gui_button(ctx, "Reset", 0, 0))
-        value = 50;
-    if (gui_button(ctx, "+5", 0, 0))
-        value += 5;
-    gui_label(ctx, "Row 2:", 0);
-    gui_slider(ctx, "Slider 1", &value, "%.1f", 0, 100, 1, 0);
-    if (gui_button(ctx, "-5", 0, 0))
-        value -= 5;
-    gui_row(ctx, 2, (i32[]){512, 0}, 35);
-    gui_text_input(ctx, "Text input", text_buf, 128, GUI_OPT_LEFT);
-    gui_number_input(ctx, "Number input", &value, "%.1f", 0, 100, 0, 0);
-
+    if (gui_window(ctx, &gui_win, 0))
+    {
+        gui_row(ctx, 3, (i32[]){70, -70, 0}, 0);
+        gui_label(ctx, "Row 1:", 0);
+        if (gui_button(ctx, "Reset", 0, 0))
+            value = 50;
+        if (gui_button(ctx, "+5", 0, 0))
+            value += 5;
+        gui_label(ctx, "Row 2:", 0);
+        gui_slider(ctx, "Slider 1", &value, "%.1f", 0, 100, 1, 0);
+        if (gui_button(ctx, "-5", 0, 0))
+            value -= 5;
+        gui_row(ctx, 2, (i32[]){-100, 0}, 0);
+        gui_text_input(ctx, "Text input", text_buf, 128, GUI_OPT_LEFT);
+        gui_number_input(ctx, "Number input", &value, "%.1f", 0, 100, 0, 0);
+        gui_window_end(ctx);
+    }
+    if (gui_window(ctx, &gui_win2, 0))
+    {
+        gui_window_end(ctx);
+    }
     gui_end(ctx);
 }
 
@@ -167,7 +176,8 @@ int main(void)
     
     // @Note(Tyler): `[$float$]` creates a floating window (as opposed to tiled) in my i3 config
     Window window = init_gl(width, height, "[$float$] Hello, World");
-    
+
+    GLFWcursor *cursor_bar = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
     // Create VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -211,14 +221,15 @@ int main(void)
     
     // Renderer_Text rtext = make_renderer_text(font.shader);
     gui_context.style.font = &font;
-
+    gui_win = gui_window_init(&gui_context, "Test title", (Gui_Rect){256, 100, 512, 110});
+    gui_win2 = gui_window_init(&gui_context, "FOO BAR", (Gui_Rect){100, 100, 100, 100});
 
     // Create transformation matrices
     Mat4f projection_mat = mat4f_perspective(RAD(45.0f), (float)width/(float)height, 0.1f, 100.0f);
     // Mat4f projection_mat = mat4f_ortho(-10, 10, -10, 10, 0, 100);
 
     Mat4f view_mat;
-
+    
     // Initialize delta time
     double last_time = glfwGetTime();
     double current_time;
@@ -261,7 +272,12 @@ int main(void)
 
         do_gui(&gui_context, window);
         draw_gui(&gui_context, &r2d);
-        // draw_entity_2d(font.shader, adventurer); // TODO(Tyler): Use Renderer_2D (How to switch textures mid-layer?)
+        if (gui_context.cursor_icon == GUI_CURSOR_BAR) // @Todo(Tyler): Move this into `draw_gui`
+            glfwSetCursor(window.handle, cursor_bar);
+        else
+            glfwSetCursor(window.handle, 0);
+        
+        // draw_entity_2d(font.shader, adventurer); // @Todo(Tyler): Use Renderer_2D (How to switch textures mid-layer?)
         float fps_w = get_text_width(font, fps_str, 24);
         buffer_text(&r2d, font, fps_str, width-fps_w, height-24, 24, 3);
 
@@ -298,7 +314,6 @@ int main(void)
     // Cleanup
     destroy_model(&model);
     destroy_texture(brick);
-    // destroy_font(font);
 
     glDeleteProgram(shader.id);
 

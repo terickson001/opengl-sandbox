@@ -8,13 +8,6 @@ u64 gui_id(const void *data, isize size)
     return hash_crc64(data, size);
 }
 
-Gui_Context gui_init()
-{
-    Gui_Context ctx = {0};
-    ctx.style = GUI_DEFAULT_STYLE;
-    return ctx;
-}
-
 void gui_input_mouse(Gui_Context *ctx, KeyState *buttons, Vec2f pos, Vec2f scroll)
 {
     memcpy(ctx->mouse, buttons, sizeof(buttons[0])*3);
@@ -65,30 +58,91 @@ float gui_text_width(Gui_Context *ctx, char const *text, int size)
     return gui_text_widthn(ctx, text, -1, size);
 }
 
+void gui_push_container(Gui_Context *ctx, Gui_Rect container)
+{
+    array_append(&ctx->containers, container);
+}
+
+Gui_Rect gui_curr_container(Gui_Context *ctx)
+{
+    return ctx->containers[array_size(ctx->containers)-1];
+}
+
+void gui_pop_container(Gui_Context *ctx)
+{
+    array_set_size(&ctx->containers, array_size(ctx->containers)-1);
+}
+
+Gui_Context gui_init()
+{
+    Gui_Context ctx = {0};
+    ctx.style = GUI_DEFAULT_STYLE;
+    array_init(&ctx.draws);
+    array_init(&ctx.windows);
+    array_init(&ctx.containers);
+    
+    return ctx;
+}
+
 void gui_begin(Gui_Context *ctx, Window win)
 {
-    if (ctx->draws)
-        array_free(ctx->draws);
-    array_init(&ctx->draws);
+    array_set_size(&ctx->draws, 0);
+    array_set_size(&ctx->windows, 0);
+    array_set_size(&ctx->containers, 0);
+
     ctx->draw_index = 0;
+
+    gui_push_container(ctx, (Gui_Rect){0, 0, win.width, win.height});
+    
     ctx->layout.pos = init_vec2f(0, 0);
-    ctx->layout.size.x = win.width;
     ctx->layout.items = 1;
     memset(ctx->layout.widths, 0, sizeof(ctx->layout.widths[0])*MAX_ROW_ITEMS);
     ctx->layout.curr_item = 0;
+
+    ctx->layer = 0;
+    ctx->cursor_icon = GUI_CURSOR_ARROW;
+}
+
+int _win_zcmp(const void *a, const void *b)
+{
+    return (*(Gui_Window**)a)->layer - (*(Gui_Window**)b)->layer;
 }
 
 void gui_end(Gui_Context *ctx)
 {
-    // What should be done here?
+    // Reset input state
     memset(ctx->text_input, 0, 128);
     ctx->scroll = (Vec2f){0};
+    ctx->last_cursor = ctx->cursor;
+    ctx->cursor = (Vec2f){0};
+    
+    // Sort windows by layer
+    qsort(ctx->windows, array_size(ctx->windows), sizeof(Gui_Window *),  _win_zcmp);
+    
+    // Stack windows
+    i32 prev_max = 0;
+    i32 new_max  = 0;
+    for (int i = 0; i < array_size(ctx->windows); i++)
+    {
+        Gui_Window *win = ctx->windows[i];
+        win->layer = i; // Re-Pack layers
+        
+        for (int d = win->draws.start; d <= win->draws.end; d++)
+        {
+            ctx->draws[d].layer += prev_max + 1;
+            new_max = MAX(new_max, ctx->draws[d].layer);
+        }
+
+        prev_max = new_max;
+    }
+
+    ctx->win_top_layer = array_size(ctx->windows);
     ctx->layer = 0;
 }
 
 void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
 {
-    ctx->layout.size.y = height;
+    ctx->layout.size.y = height ? height : ctx->style.size.y;
     ctx->layout.items = items;
     memcpy(ctx->layout.widths, widths, items*sizeof(widths[0]));
     ctx->layout.curr_item = 0;
@@ -97,17 +151,18 @@ void gui_row(Gui_Context *ctx, i32 items, i32 *widths, i32 height)
 Gui_Rect gui_layout_peek_rect(Gui_Context *ctx)
 {
     Gui_Rect rect = {0};
+    Gui_Rect container = gui_curr_container(ctx);
 
-    rect.x = ctx->layout.pos.x;
-    rect.y = ctx->layout.pos.y;
+    rect.x = container.x + ctx->layout.pos.x;
+    rect.y = container.y + ctx->layout.pos.y;
 
     rect.w = ctx->layout.widths[ctx->layout.curr_item];
     rect.h = ctx->layout.size.y;
 
     // Position relative to right for negative values
-    if (rect.w <= 0) rect.w += ctx->layout.size.x - rect.x;
+    if (rect.w <= 0) rect.w += container.x + container.w - rect.x;
 
-    // Adjust for padding
+    // Adjust for spacing
     rect.x += ctx->style.spacing;
     rect.y += ctx->style.spacing;
     rect.w -= ctx->style.spacing * 2;
@@ -119,14 +174,16 @@ Gui_Rect gui_layout_peek_rect(Gui_Context *ctx)
 Gui_Rect gui_layout_rect(Gui_Context *ctx)
 {
     Gui_Rect rect = gui_layout_peek_rect(ctx);
+    // Gui_Rect container = gui_curr_container(ctx);
 
     // Advance layout position
-    ctx->layout.pos.x += rect.w+ctx->style.spacing * 2;
+    ctx->layout.pos.x += rect.w + ctx->style.spacing * 2;
 
     ctx->layout.curr_item++;
     if (ctx->layout.curr_item == ctx->layout.items)
     {
-        ctx->layout.pos.x -= ctx->layout.size.x;
+        // ctx->layout.pos.x -= container.w;
+        ctx->layout.pos.x = 0;
         ctx->layout.pos.y += ctx->layout.size.y;
         ctx->layout.curr_item = 0;
     }
@@ -260,22 +317,14 @@ void gui_draw_rect(Gui_Context *ctx, Gui_Rect rect, u64 id, Gui_Color color_id, 
     }
     Vec4f color = ctx->style.colors[color_id];
 
-    i32 base_layer = ctx->layer;
-
     Gui_Draw *draw = gui_add_draw(ctx, GUI_DRAW_RECT);
-    draw->focus = id == ctx->focus;
-    draw->hover = id == ctx->hover;
     draw->layer = ctx->layer;
     draw->rect.rect = rect;
     draw->rect.color = color;
     draw->rect.color_id = color_id;
 
-    ctx->layer = base_layer+1;
-    {
-        if (opt & GUI_OPT_BORDER)
-            gui_draw_border(ctx, rect, id);
-    }
-    ctx->layer = base_layer;
+    if (opt & GUI_OPT_BORDER)
+        gui_draw_border(ctx, rect, id);
 }
 
 b32 gui_next_draw(Gui_Context *ctx, Gui_Draw *ret)
@@ -312,7 +361,7 @@ u32 gui_button(Gui_Context *ctx, char *label, i32 icon, u32 opt)
 
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BUTTON, GUI_OPT_BORDER);
 
-    ctx->layer = base_layer+2;
+    ctx->layer = base_layer+1;
     {
         Gui_Rect text_rect = gui_text_rect(ctx, label);
         Gui_Rect text_aligned = gui_align_rect(ctx, rect, text_rect, opt);
@@ -355,14 +404,14 @@ u32 gui_slider(Gui_Context *ctx, char *label, f32 *value, char const *fmt, f32 m
     gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt ^ GUI_OPT_BORDER);
 
     // Draw thumb
-    ctx->layer = base_layer+2;
+    ctx->layer = base_layer+1;
     {
         f32 percentage = (*value - min)/(max-min);
         Gui_Rect thumb = {rect.x + percentage * (rect.w-tw), rect.y, tw, rect.h};
         gui_draw_rect(ctx, thumb, id, GUI_COLOR_BUTTON, opt);
     }
     // Draw value
-    ctx->layer = base_layer+3;
+    ctx->layer = base_layer+2;
     {
         char val_buf[128];
         snprintf(val_buf, 128, fmt, *value);
@@ -477,6 +526,9 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     b32 was_focus = ctx->focus == id;
     gui_update_focus(ctx, rect, id, opt ^ GUI_OPT_HOLD_FOCUS);
 
+    if (ctx->hover == id)
+        ctx->cursor_icon = GUI_CURSOR_BAR;
+    
     u32 res = 0;
     i32 cursor_start = ctx->text_box.cursor;
     Gui_Rect text_rect;
@@ -599,10 +651,6 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
         }
     }
 
-    i32 base_layer = ctx->layer;
-    // Draw box
-    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt ^ GUI_OPT_BORDER);
-
     // Scrolling Text
     float cursor_pos = 0;
     float offset_x = 0;
@@ -663,9 +711,13 @@ u32 gui_text_input(Gui_Context *ctx, char *label, char *buf, int buf_size, u32 o
     {
         ctx->text_box.cursor_last_updated = ctx->time;
     }
-    
+
+    i32 base_layer = ctx->layer;
+    // Draw box
+    gui_draw_rect(ctx, rect, id, GUI_COLOR_BASE, opt ^ GUI_OPT_BORDER);
+
     // Draw text
-    ctx->layer = base_layer+2;
+    ctx->layer = base_layer+1;
     {
         gui_draw_text(ctx, buf, text_rect, GUI_COLOR_TEXT, opt);
     }
@@ -738,4 +790,132 @@ u32 gui_number_input(Gui_Context *ctx, char *label, f32 *value, char const *fmt,
         parse_f32(&v_buf, value);
 
     return res;
+}
+
+Gui_Rect gui_window_container(Gui_Context *ctx, Gui_Window *win)
+{
+    win->container = win->rect;
+    win->container.y += ctx->style.title_size + ctx->style.padding;
+    win->container.h -= ctx->style.title_size*2 + ctx->style.padding*2;
+    win->container.x += ctx->style.padding;
+    win->container.w -= ctx->style.padding * 2;
+    return win->container;
+}
+
+Gui_Window gui_window_init(Gui_Context *ctx, char *title, Gui_Rect rect)
+{
+    Gui_Window window = {0};
+    window.title = title;
+    window.rect = rect;
+    window.open = true;
+    
+    return window;
+}
+
+void gui_bring_to_front(Gui_Context *ctx, Gui_Window *win)
+{
+    win->layer = ++ctx->win_top_layer;
+}
+
+void gui_update_window_focus(Gui_Context *ctx, Gui_Window *win, u64 id, u32 opt)
+{
+    b32 mouse_over = gui_mouse_over(ctx, win->rect);
+    if (mouse_over && !gui_mouse_down(ctx, 0) &&
+        (!ctx->window_hover || ctx->window_hover->layer < win->layer)) ctx->window_hover = win;
+    if (ctx->window_focus == win)
+    {
+        if (gui_mouse_pressed(ctx, 0) && !mouse_over) ctx->window_focus = 0;
+    }
+    if (ctx->window_hover == win)
+    {
+        if (!mouse_over) ctx->window_hover = 0;
+        else if (gui_mouse_pressed(ctx, 0)) ctx->window_focus = win;
+    }
+}
+
+u32 gui_window(Gui_Context *ctx, Gui_Window *win, u32 opt)
+{
+    u64 id = gui_id(win->title, strlen(win->title));
+    
+    if (!win->open) return 0;
+    
+    gui_push_container(ctx, gui_window_container(ctx, win));
+    win->draws.start = array_size(ctx->draws);
+    array_append(&ctx->windows, win);
+
+    Gui_Rect title = win->rect;
+    title.h = ctx->style.title_size;
+
+    Gui_Rect close = title;
+    close.w = close.h;
+    close.x += title.w-close.w;
+
+    // Handle hover/focus
+    b32 was_focus = ctx->window_focus == win;
+    b32 close_hover = false;
+    gui_update_window_focus(ctx, win, id, opt);
+    if (ctx->window_hover == win || ctx->window_focus == win)
+    {
+        if (ctx->window_focus == win && !was_focus) gui_bring_to_front(ctx, win);
+
+        // Temp labels for window elements
+        char temp_label[256];
+        i32 label_len;
+        
+        // Handle title drag
+        label_len = snprintf(temp_label, 256, "%s.__TITLE__", win->title);
+        u64 title_id = gui_id(temp_label, label_len);
+        was_focus = ctx->focus == title_id;
+        gui_update_focus(ctx, title, title_id, opt);
+        if (ctx->focus == title_id)
+        {
+            win->rect.x += ctx->cursor.x - ctx->last_cursor.x;
+            win->rect.y += ctx->cursor.y - ctx->last_cursor.y;
+        }
+        
+        // Handle close button
+        label_len = snprintf(temp_label, 256, "%s.__CLOSE__", win->title);
+        u64 close_id = gui_id(temp_label, label_len);
+        was_focus = ctx->focus == close_id;
+        gui_update_focus(ctx, close, close_id, 0);
+        close_hover = ctx->hover == close_id;
+        if (was_focus && gui_mouse_released(ctx, 0) && ctx->hover == close_id)
+        {
+            ctx->window_focus = 0;
+            ctx->window_hover = 0;
+            win->open = false;
+        }
+    }
+
+    i32 base_layer = ctx->layer;
+    // Draw background
+    gui_draw_rect(ctx, win->rect, id, GUI_COLOR_WINDOW, opt);
+
+    // Draw title
+    {
+        ctx->layer++;
+        gui_draw_rect(ctx, title, id, GUI_COLOR_TITLE, opt);
+        
+        ctx->layer++;
+        Gui_Rect title_text = gui_text_rect(ctx, win->title);
+        title_text = gui_align_rect(ctx, title, title_text, opt);
+        gui_draw_text(ctx, win->title, title_text, GUI_COLOR_TITLE_TEXT, opt);
+
+        // Draw close button
+        // @Todo(Tyler): Icons
+        Gui_Color close_color = GUI_COLOR_TITLE;
+        if (close_hover)
+            close_color = GUI_COLOR_CLOSE;
+        gui_draw_rect(ctx, close, id, close_color, opt);
+    }
+
+    ctx->layer = base_layer;
+    return GUI_RES_ACTIVE;
+}
+
+void gui_window_end(Gui_Context *ctx)
+{
+    Gui_Window *win = ctx->windows[array_size(ctx->windows)-1];
+    win->draws.end = array_size(ctx->draws)-1;
+    gui_pop_container(ctx);
 }

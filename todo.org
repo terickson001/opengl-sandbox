@@ -8,12 +8,12 @@
 ** TODO Store keyboard input
 ** TODO Columns
 ** TODO Absolute positioning
-** TODO Windows/Containers
+** DONE Windows/Containers
 *** TODO Scrolling
 ** TODO Expandable Trees
 *** TODO Icons
-
-
+** TODO Optional slider fill
+** TODO Percentage-based layout widths
 * Renderer
 ** TODO Re-work model definitions
 ** TODO Configurable text color
