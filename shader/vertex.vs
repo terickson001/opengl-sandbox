@@ -23,6 +23,7 @@ out VS_OUT {
     vec3 light_direction_tbn;
     vec3 tangent;
     vec3 bitangent;
+    vec3 position;
 } vert;
 
 uniform mat4 MVP;
@@ -38,6 +39,7 @@ void main()
 {
     mat4 MV = V*M;
 
+    vert.position = vertex_position;
     vert.normal = vertex_normal;
     // Position of the vertex, in worldspace
     vert.position_m =  (M * vec4(vertex_position,1)).xyz;

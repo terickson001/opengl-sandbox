@@ -12,6 +12,7 @@ in VS_OUT {
     vec3 light_direction_tbn;
     vec3 tangent;
     vec3 bitangent;
+    vec3 position;
 } frag;
 
 out vec3 color;
@@ -27,8 +28,18 @@ uniform vec3 light_position_m;
 const float specularity = 1;
 void main()
 {
-    // vec3 material_diffuse_color = (frag.normal/2)+0.5;
-    vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
+    // vec3 xc = vec3(0.7, 0.3, 0.0);
+    // vec3 yc = vec3(0.0, 0.7, 0.3);
+    // vec3 zc = vec3(0.3, 0.0, 0.7);
+    vec3 xc = vec3(1.0, 0.0, 0.0);
+    vec3 yc = vec3(0.0, 1.0, 0.0);
+    vec3 zc = vec3(0.0, 0.0, 1.0);
+
+    vec3 pos_position = (frag.position+1)/2;
+    vec3 material_diffuse_color = pos_position;
+    //vec3 material_diffuse_color = pos_position.x*xc + pos_position.y+yc + pos_position.z+zc;
+    //vec3 material_diffuse_color = (gl_FragCoord.x)/2048*xc+gl_FragCoord.y/1536*yc;//(frag.normal/2)+0.5;
+    // vec3 material_diffuse_color = texture(diffuse_sampler, frag.uv).rgb;
     vec3 material_ambient_color = 0.3f * material_diffuse_color;
     vec3 material_specular_color = texture(specular_sampler, frag.uv).rgb * specularity;
 

@@ -131,7 +131,7 @@ typedef struct Packed_Vertex
 
 // Returns true iif v1 can be considered equal to v2
 bool is_near(float v1, float v2){
-    return fabsf( v1-v2 ) < 0.01f;
+    return fabsf( v1-v2 ) < 0.0001f;
 }
 
 // Searches through all already-exported vertices
@@ -147,16 +147,16 @@ bool _get_similar_vertex_slow(
     u16 *result
 ){
     // Lame linear search
-    for (u16 i=0; i < array_size(out_vertices); i++){
+    for (u16 i = 0; i < array_size(out_vertices); i++){
         if (
             is_near(vertex.x, out_vertices[i].x) &&
             is_near(vertex.y, out_vertices[i].y) &&
             is_near(vertex.z, out_vertices[i].z) &&
             is_near(uv.u,     out_uvs     [i].u) &&
             is_near(uv.v,     out_uvs     [i].v) &&
-            is_near(normal.x, out_normals [i].x) &&
-            is_near(normal.y, out_normals [i].y) &&
-            is_near(normal.z, out_normals [i].z)
+            fabsf(normal.x - out_normals [i].x) < 0.001 &&
+            fabsf(normal.y - out_normals [i].y) < 0.001 &&
+            fabsf(normal.z - out_normals [i].z) < 0.001
         ){
             *result = i;
             return true;
@@ -200,7 +200,7 @@ void index_model(Model *m)
     
     for (u16 i = 0; i < (u16)array_size(m->vertices); i++)
     {
-        u16 index;
+        u16 index = 0;
         bool found = _get_similar_vertex_slow(m->vertices[i], m->uvs[i], m->normals[i],
                                               temp_vertices, temp_uvs, temp_normals,
                                               &index);
@@ -209,6 +209,8 @@ void index_model(Model *m)
         {
             array_append(&m->indices, index);
 
+            
+            temp_normals[index]   = vec3f_add(temp_normals[index],   m->normals[i]);
             if (m->tangents)   temp_tangents[index]   = vec3f_add(temp_tangents[index],   m->tangents[i]);
             if (m->bitangents) temp_bitangents[index] = vec3f_add(temp_bitangents[index], m->bitangents[i]);
         }
@@ -225,6 +227,7 @@ void index_model(Model *m)
         }
     }
 
+    printf("V0: %d\nV1: %d\n", array_size(m->vertices), array_size(temp_vertices));
     array_free(m->vertices);
     array_free(m->uvs);
     array_free(m->normals);
@@ -237,12 +240,12 @@ void index_model(Model *m)
     m->tangents   = temp_tangents;
     m->bitangents = temp_bitangents;
 
-    array_shrink(&m->vertices);
-    array_shrink(&m->uvs);
-    array_shrink(&m->normals);
-    if (m->tangents)   array_shrink(&m->tangents);
-    if (m->bitangents) array_shrink(&m->bitangents);
-    array_shrink(&m->indices);
+    /* array_shrink(&m->vertices); */
+    /* array_shrink(&m->uvs); */
+    /* array_shrink(&m->normals); */
+    /* if (m->tangents)   array_shrink(&m->tangents); */
+    /* if (m->bitangents) array_shrink(&m->bitangents); */
+    /* array_shrink(&m->indices); */
 
     m->indexed = true;
 }
@@ -335,23 +338,10 @@ void _compute_tangent_basis_unindexed(Model *m)
             ),
             r
         );
-        
-        // bitangent = (delta_pos1*delta_uv0.u - delta_pos0*delta_uv1.u)*r
-        /* Vec3f bitangent = vec3f_scale( */
-        /*     vec3f_sub( */
-        /*         vec3f_scale(delta_pos1, delta_uv0.u), */
-        /*         vec3f_scale(delta_pos0, delta_uv1.u) */
-        /*     ), */
-        /*     r */
-        /* ); */
 
         array_append(&m->tangents, tangent);
         array_append(&m->tangents, tangent);
         array_append(&m->tangents, tangent);
-
-        /* array_append(&m->bitangents, bitangent); */
-        /* array_append(&m->bitangents, bitangent); */
-        /* array_append(&m->bitangents, bitangent); */
     }
 }
 
@@ -372,9 +362,6 @@ void compute_tangent_basis(Model *m)
         // t = normalize(t - n * dot(n, t));
         *t = vec3f_normalize(vec3f_sub(*t, vec3f_scale(*n, vec3f_dot(*n, *t))));
         array_append(&m->bitangents, vec3f_cross(*n, *t));
-        Vec3f *b = &m->bitangents[i];
-        /* if (vec3f_dot(vec3f_cross(*n, *t), *b) < 0.0f) */
-        /*     *t = vec3f_scale(*t, -1); */
     }
     
     array_shrink(&m->tangents);
